@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { Line, LineChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 import { api } from "../../lib/api"
 import type { HistoryEntry } from "../../lib/types"
@@ -6,6 +7,7 @@ import { Card, EmptyState, PageHeader, Spinner, Table } from "../../components/u
 
 export default function StudentHistory() {
   const [history, setHistory] = useState<HistoryEntry[] | null>(null)
+  const navigate = useNavigate()
 
   useEffect(() => {
     api.get<HistoryEntry[]>("/api/live/history", "student").then(setHistory)
@@ -63,7 +65,11 @@ export default function StudentHistory() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {history.map((h, i) => (
-                <tr key={i}>
+                <tr
+                  key={i}
+                  onClick={() => navigate(`/student/result/${h.session_id}`)}
+                  className="cursor-pointer hover:bg-slate-50"
+                >
                   <td className="px-4 py-3 font-medium text-slate-900">{h.quiz_title}</td>
                   <td className="px-4 py-3 text-slate-500">{new Date(h.date).toLocaleDateString()}</td>
                   <td className="px-4 py-3 text-slate-500">

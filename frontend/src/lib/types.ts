@@ -230,6 +230,7 @@ export interface Overview {
 }
 
 export interface HistoryEntry {
+  session_id: number
   quiz_id: number
   quiz_title: string
   subject: string

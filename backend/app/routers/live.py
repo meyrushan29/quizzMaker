@@ -279,6 +279,7 @@ async def my_history(db: AsyncSession = Depends(get_db), student: Student = Depe
     sessions = result.scalars().all()
     return [
         {
+            "session_id": s.id,
             "quiz_id": s.quiz_id,
             "quiz_title": s.quiz.title,
             "subject": s.quiz.subject,
