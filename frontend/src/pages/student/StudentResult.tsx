@@ -84,6 +84,62 @@ export default function StudentResult() {
           <Button variant="secondary">View Quiz History</Button>
         </Link>
       </Card>
+
+      {result.answers.length > 0 && <AnswerReview answers={result.answers} />}
     </div>
+  )
+}
+
+function AnswerReview({ answers }: { answers: ResultData["answers"] }) {
+  const missed = answers.filter((a) => !a.is_correct)
+
+  if (missed.length === 0) {
+    return (
+      <Card className="mt-4">
+        <p className="text-center font-medium text-emerald-700">You answered every question correctly. Great job!</p>
+      </Card>
+    )
+  }
+
+  return (
+    <Card className="mt-4">
+      <h2 className="text-lg font-semibold text-slate-900">Review your answers</h2>
+      <p className="mt-1 text-sm text-slate-500">
+        {missed.length} of {answers.length} question{answers.length === 1 ? "" : "s"} to review
+      </p>
+      <div className="mt-4 space-y-4">
+        {missed.map((item, i) => (
+          <div key={item.question_id} className="rounded-xl border border-rose-200 bg-rose-50 p-4">
+            <p className="text-sm font-medium text-slate-900">
+              {i + 1}. {item.question_text}
+              {item.topic && <span className="ml-2 text-xs font-normal text-slate-500">({item.topic})</span>}
+            </p>
+            <div className="mt-3 space-y-1.5">
+              {item.options.map((opt) => {
+                const isCorrect = opt.key === item.correct_answer
+                const isSelected = opt.key === item.selected_answer
+                return (
+                  <div
+                    key={opt.key}
+                    className={`rounded-lg border px-3 py-1.5 text-sm ${
+                      isCorrect
+                        ? "border-emerald-300 bg-emerald-100 text-emerald-800"
+                        : isSelected
+                          ? "border-rose-300 bg-rose-100 text-rose-800"
+                          : "border-slate-200 bg-white text-slate-600"
+                    }`}
+                  >
+                    <span className="font-semibold">{opt.key}.</span> {opt.text}
+                    {isCorrect && <span className="ml-2 text-xs font-medium">Correct answer</span>}
+                    {isSelected && !isCorrect && <span className="ml-2 text-xs font-medium">Your answer</span>}
+                  </div>
+                )
+              })}
+              {!item.selected_answer && <p className="text-xs italic text-slate-500">You did not answer this question.</p>}
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
   )
 }

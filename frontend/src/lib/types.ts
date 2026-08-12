@@ -132,6 +132,17 @@ export interface StudentQuestion {
   selected_answer: string | null
 }
 
+export interface AnswerReviewItem {
+  question_id: number
+  question_text: string
+  options: { key: string; text: string }[]
+  correct_answer: string
+  selected_answer: string | null
+  is_correct: boolean
+  marks: number
+  topic: string | null
+}
+
 export interface ResultData {
   session_id: number
   student_name: string
@@ -146,6 +157,7 @@ export interface ResultData {
   time_taken_seconds: number | null
   performance_message: string
   passed: boolean
+  answers: AnswerReviewItem[]
 }
 
 export interface ClassAnalysis {

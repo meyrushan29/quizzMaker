@@ -49,6 +49,17 @@ class SessionStateResponse(BaseModel):
     questions: list[StudentQuestionView] = []
 
 
+class AnswerReviewItem(BaseModel):
+    question_id: int
+    question_text: str
+    options: list[QuestionOption]
+    correct_answer: str
+    selected_answer: str | None
+    is_correct: bool
+    marks: int
+    topic: str | None
+
+
 class ResultResponse(BaseModel):
     session_id: int
     student_name: str
@@ -63,3 +74,4 @@ class ResultResponse(BaseModel):
     time_taken_seconds: int | None
     performance_message: str
     passed: bool
+    answers: list[AnswerReviewItem] = []

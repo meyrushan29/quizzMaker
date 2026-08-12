@@ -10,6 +10,7 @@ from ..db import get_db
 from ..models import Answer, Question, Quiz, QuizStatus, QuizSession, SessionStatus, Student
 from ..schemas.common import assume_utc
 from ..schemas.live import (
+    AnswerReviewItem,
     AnswerSubmitRequest,
     JoinQuizRequest,
     JoinQuizResponse,
@@ -227,7 +228,7 @@ async def submit_quiz(session_id: int, db: AsyncSession = Depends(get_db), stude
     if not quiz.show_result_immediately and quiz.status != QuizStatus.completed.value:
         return {"detail": "Submitted. Your teacher will publish results shortly."}
 
-    return _build_result(session, quiz, student)
+    return await _build_result(db, session, quiz, student)
 
 
 @router.get("/session/{session_id}/result", response_model=ResultResponse | dict)
@@ -239,7 +240,7 @@ async def get_result(session_id: int, db: AsyncSession = Depends(get_db), studen
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You must submit the quiz before viewing results.")
     if not quiz.show_result_immediately and quiz.status != QuizStatus.completed.value:
         return {"detail": "Results are not available yet. Your teacher will publish them shortly."}
-    return _build_result(session, quiz, student)
+    return await _build_result(db, session, quiz, student)
 
 
 @router.get("/session/{session_id}/leaderboard")
@@ -313,8 +314,30 @@ async def available_quizzes(db: AsyncSession = Depends(get_db), student: Student
     ]
 
 
-def _build_result(session: QuizSession, quiz: Quiz, student: Student) -> ResultResponse:
+async def _build_result(db: AsyncSession, session: QuizSession, quiz: Quiz, student: Student) -> ResultResponse:
     percentage = session.percentage or 0
+
+    answers_result = await db.execute(select(Answer).where(Answer.session_id == session.id))
+    answers_by_qid = {a.question_id: a for a in answers_result.scalars().all()}
+    answer_review = [
+        AnswerReviewItem(
+            question_id=q.id,
+            question_text=q.question_text,
+            options=[
+                QuestionOption(key="A", text=q.option_a),
+                QuestionOption(key="B", text=q.option_b),
+                QuestionOption(key="C", text=q.option_c),
+                QuestionOption(key="D", text=q.option_d),
+            ],
+            correct_answer=q.correct_answer,
+            selected_answer=answers_by_qid[q.id].selected_answer if q.id in answers_by_qid else None,
+            is_correct=bool(answers_by_qid[q.id].is_correct) if q.id in answers_by_qid else False,
+            marks=q.marks,
+            topic=q.topic,
+        )
+        for q in quiz.questions
+    ]
+
     return ResultResponse(
         session_id=session.id,
         student_name=student.name,
@@ -329,4 +352,5 @@ def _build_result(session: QuizSession, quiz: Quiz, student: Student) -> ResultR
         time_taken_seconds=session.time_taken_seconds,
         performance_message=performance_message(percentage),
         passed=percentage >= quiz.passing_percentage,
+        answers=answer_review,
     )
