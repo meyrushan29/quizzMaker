@@ -59,7 +59,7 @@ export default function StudentResult() {
           {result.passed ? "You passed this quiz." : "You did not reach the passing score."}
         </p>
 
-        <div className="mt-6 grid grid-cols-4 gap-2 text-center">
+        <div className="mt-6 grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
           <div className="rounded-xl bg-emerald-50 p-3">
             <p className="text-lg font-semibold text-emerald-700">{result.correct}</p>
             <p className="text-xs text-emerald-600">Correct</p>

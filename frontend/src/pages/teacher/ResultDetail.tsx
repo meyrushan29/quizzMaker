@@ -149,7 +149,7 @@ export default function ResultDetail() {
                   </div>
                   <span className={`text-lg font-semibold ${q.accuracy < 70 ? "text-rose-600" : "text-emerald-600"}`}>{q.accuracy}%</span>
                 </div>
-                <div className="mt-3 grid grid-cols-5 gap-2 text-center text-xs">
+                <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs sm:grid-cols-5">
                   {(["A", "B", "C", "D"] as const).map((k) => (
                     <div key={k} className={`rounded-lg p-2 ${q.correct_answer === k ? "bg-emerald-50 text-emerald-700" : "bg-slate-50 text-slate-600"}`}>
                       <p className="font-semibold">{k}</p>

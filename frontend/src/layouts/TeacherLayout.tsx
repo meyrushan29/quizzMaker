@@ -56,7 +56,7 @@ export default function TeacherLayout() {
         </div>
       </aside>
 
-      <div className="flex-1">
+      <div className="min-w-0 flex-1">
         <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 lg:hidden">
           <p className="text-lg font-bold text-indigo-600">QuizzMaker</p>
           <button onClick={handleLogout} className="text-sm text-slate-500">

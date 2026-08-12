@@ -400,7 +400,7 @@ export default function QuizEditor() {
                 </Field>
               ))}
               <p className="text-xs text-slate-400">Select the radio button next to the correct answer.</p>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <Field label="Marks">
                   <input
                     type="number"
