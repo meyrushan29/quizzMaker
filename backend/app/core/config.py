@@ -1,6 +1,8 @@
 from functools import lru_cache
+from typing import Annotated
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import field_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -10,8 +12,7 @@ class Settings(BaseSettings):
 
     # Default to a local SQLite database (via aiosqlite) so the app runs out of
     # the box without a PostgreSQL server. Point DATABASE_URL at a Postgres
-    # instance (e.g. postgresql+asyncpg://user:pass@host/db) for production -
-    # the code contains no SQLite-specific logic.
+    # instance for production - the code contains no SQLite-specific logic.
     database_url: str = "sqlite+aiosqlite:///./quizzmaker.db"
 
     secret_key: str = "dev-secret-key-change-me-in-production"
@@ -19,10 +20,31 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60 * 12
     student_token_expire_minutes: int = 60 * 6
 
-    allow_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
+    allow_origins: Annotated[list[str], NoDecode] = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
     default_passing_percentage: int = 50
     at_risk_threshold_percentage: int = 50
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def _use_asyncpg_driver(cls, value: str) -> str:
+        # Managed Postgres providers (Render, Heroku, ...) hand out
+        # "postgres://" or "postgresql://" URLs, but SQLAlchemy's async engine
+        # needs the asyncpg driver spelled out explicitly.
+        if value.startswith("postgres://"):
+            return "postgresql+asyncpg://" + value[len("postgres://") :]
+        if value.startswith("postgresql://"):
+            return "postgresql+asyncpg://" + value[len("postgresql://") :]
+        return value
+
+    @field_validator("allow_origins", mode="before")
+    @classmethod
+    def _split_comma_separated_origins(cls, value: str | list[str]) -> str | list[str]:
+        # Lets ALLOW_ORIGINS be set as a plain comma-separated string in
+        # dashboards (Render, etc.) instead of requiring JSON-array syntax.
+        if isinstance(value, str) and not value.strip().startswith("["):
+            return [origin.strip() for origin in value.split(",") if origin.strip()]
+        return value
 
 
 @lru_cache
