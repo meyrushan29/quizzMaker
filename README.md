@@ -58,6 +58,24 @@ npm run dev
 
 App: http://localhost:5173
 
+## Android App (Capacitor)
+
+The `frontend/android` project wraps the live Vercel deployment in a native shell
+(`capacitor.config.ts` points `server.url` at production, so it loads the live site
+rather than a bundled copy - frontend updates ship instantly without a new Play
+Store release).
+
+```powershell
+cd frontend
+npx cap sync android   # after changing capacitor.config.ts or native plugins
+cd android
+./gradlew assembleDebug
+```
+
+Debug APK: `frontend/android/app/build/outputs/apk/debug/app-debug.apk`.
+Requires a `frontend/android/local.properties` with `sdk.dir` pointing at your
+Android SDK (gitignored, machine-specific).
+
 ## What's Implemented
 
 - Teacher auth (JWT) + student auth (Student ID + name, no password) with rate limiting
