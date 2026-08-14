@@ -9,8 +9,16 @@ from ..core.config import get_settings
 from ..core.rate_limit import login_rate_limiter, student_login_rate_limiter
 from ..core.security import create_access_token, create_password_hash, verify_password
 from ..db import get_db
-from ..models import Student, User
-from ..schemas.auth import ForgotPasswordRequest, ResetPasswordRequest, StudentLoginRequest, StudentToken, Token
+from ..models import QuizStatus, QuizSession, Quiz, Student, User
+from ..schemas.auth import (
+    ForgotPasswordRequest,
+    QuickJoinRequest,
+    ResetPasswordRequest,
+    StudentLoginRequest,
+    StudentToken,
+    Token,
+)
+from ..services.quiz_code import generate_guest_student_id, guest_prefix_for
 
 router = APIRouter()
 settings = get_settings()
@@ -38,6 +46,63 @@ async def student_login(payload: StudentLoginRequest, db: AsyncSession = Depends
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This student account is inactive. Please contact your teacher.")
     if student.name.strip().lower() != payload.name.strip().lower():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Student ID or name does not match our records.")
+
+    access_token = create_access_token(
+        {"sub": str(student.id), "role": "student"}, timedelta(minutes=settings.student_token_expire_minutes)
+    )
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "role": "student",
+        "student_id": student.student_id,
+        "name": student.name,
+        "id": student.id,
+    }
+
+
+@router.post("/quick-join", response_model=StudentToken, dependencies=[Depends(student_login_rate_limiter)])
+async def quick_join(payload: QuickJoinRequest, db: AsyncSession = Depends(get_db)):
+    """Lets a student join a live quiz with just their name and the quiz code -
+    no teacher-provisioned Student ID required. A lightweight guest Student
+    record is created (or reused, if this name already joined this quiz)."""
+    name = payload.name.strip()
+    quiz_code = payload.quiz_code.strip().upper()
+    if not name:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Please enter your name.")
+
+    result = await db.execute(select(Quiz).where(Quiz.quiz_code == quiz_code))
+    quiz = result.scalars().first()
+    if quiz is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz code is invalid.")
+    if quiz.status == QuizStatus.completed.value:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="This quiz has already ended.")
+    if quiz.status == QuizStatus.draft.value:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Quiz has not started yet.")
+
+    # Resume this name's own guest record for this quiz (e.g. on page refresh) rather than
+    # creating a duplicate - but never match against a teacher's real roster of students.
+    existing_result = await db.execute(
+        select(Student)
+        .join(QuizSession, QuizSession.student_id == Student.id)
+        .where(
+            Student.student_id.like(f"{guest_prefix_for(quiz_code)}%"),
+            func.lower(Student.name) == name.lower(),
+            QuizSession.quiz_id == quiz.id,
+        )
+    )
+    student = existing_result.scalars().first()
+
+    if student is None:
+        student = Student(
+            student_id=await generate_guest_student_id(db, quiz_code),
+            name=name,
+            grade=quiz.grade,
+            subject=quiz.subject,
+            status="active",
+        )
+        db.add(student)
+        await db.commit()
+        await db.refresh(student)
 
     access_token = create_access_token(
         {"sub": str(student.id), "role": "student"}, timedelta(minutes=settings.student_token_expire_minutes)

@@ -20,6 +20,7 @@ interface AuthContextValue {
   teacherLogin: (email: string, password: string) => Promise<void>
   teacherLogout: () => void
   studentLogin: (studentId: string, name: string) => Promise<void>
+  quickJoin: (quizCode: string, name: string) => Promise<void>
   studentLogout: () => void
 }
 
@@ -75,6 +76,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStudent({ token: data.access_token, id: data.id, studentId: data.student_id, name: data.name })
   }
 
+  async function quickJoin(quizCode: string, name: string) {
+    const data = await api.post<{ access_token: string; id: number; student_id: string; name: string }>(
+      "/api/auth/quick-join",
+      { quiz_code: quizCode, name },
+      "none"
+    )
+    localStorage.setItem("student_token", data.access_token)
+    localStorage.setItem("student_db_id", String(data.id))
+    localStorage.setItem("student_student_id", data.student_id)
+    localStorage.setItem("student_name", data.name)
+    setStudent({ token: data.access_token, id: data.id, studentId: data.student_id, name: data.name })
+  }
+
   function studentLogout() {
     localStorage.removeItem("student_token")
     localStorage.removeItem("student_db_id")
@@ -90,7 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <AuthContext.Provider value={{ teacher, student, teacherLogin, teacherLogout, studentLogin, studentLogout }}>
+    <AuthContext.Provider value={{ teacher, student, teacherLogin, teacherLogout, studentLogin, quickJoin, studentLogout }}>
       {children}
     </AuthContext.Provider>
   )

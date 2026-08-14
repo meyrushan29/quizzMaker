@@ -22,6 +22,11 @@ class StudentLoginRequest(BaseModel):
     name: str
 
 
+class QuickJoinRequest(BaseModel):
+    quiz_code: str
+    name: str
+
+
 class StudentToken(BaseModel):
     access_token: str
     token_type: str
