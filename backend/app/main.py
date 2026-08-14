@@ -24,10 +24,11 @@ async def startup_event() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    async with AsyncSessionLocal() as session:
-        from .seed import seed_demo_data
+    if settings.seed_demo_data:
+        async with AsyncSessionLocal() as session:
+            from .seed import seed_demo_data
 
-        await seed_demo_data(session)
+            await seed_demo_data(session)
 
 
 @app.get("/api/health")

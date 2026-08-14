@@ -22,6 +22,11 @@ class Settings(BaseSettings):
 
     allow_origins: Annotated[list[str], NoDecode] = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
+    # Creates the teacher@example.com / Password123! demo account + sample quizzes on
+    # first boot. Keep this True for local dev, but set SEED_DEMO_DATA=false in production
+    # (e.g. Railway) so a publicly-known login isn't created against real data.
+    seed_demo_data: bool = True
+
     default_passing_percentage: int = 50
     at_risk_threshold_percentage: int = 50
 

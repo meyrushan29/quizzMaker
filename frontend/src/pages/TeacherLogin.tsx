@@ -30,7 +30,6 @@ export default function TeacherLogin() {
     <div className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
       <div className="w-full max-w-md rounded-3xl bg-white p-8 shadow-xl">
         <h1 className="text-3xl font-semibold text-slate-900">Teacher Login</h1>
-        <p className="mt-2 text-sm text-slate-500">Demo account: teacher@example.com / Password123!</p>
         <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
           <Field label="Email">
             <input
