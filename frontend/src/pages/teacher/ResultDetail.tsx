@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { Link, useParams } from "react-router-dom"
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
+import { AlertTriangle, Download } from "lucide-react"
 import { api, downloadReport } from "../../lib/api"
 import type { ClassAnalysis, QuestionAnalysis, TopicAnalysis } from "../../lib/types"
 import { Badge, Button, Card, PageHeader, Spinner, Table } from "../../components/ui"
@@ -33,9 +34,11 @@ export default function ResultDetail() {
         actions={
           <>
             <Button variant="secondary" onClick={() => downloadReport(`/api/reports/quizzes/${quizId}/class?format=csv`, `class_report_${quizId}.csv`)}>
+              <Download className="h-4 w-4" />
               Export Class CSV
             </Button>
             <Button variant="secondary" onClick={() => downloadReport(`/api/reports/quizzes/${quizId}/questions?format=csv`, `question_report_${quizId}.csv`)}>
+              <Download className="h-4 w-4" />
               Export Question CSV
             </Button>
           </>
@@ -52,19 +55,19 @@ export default function ResultDetail() {
           ["Pass Rate", `${classData.pass_rate}%`],
         ].map(([label, value]) => (
           <Card key={label as string}>
-            <p className="text-xs font-medium uppercase text-slate-500">{label}</p>
-            <p className="mt-1 text-2xl font-semibold text-slate-900">{value}</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</p>
+            <p className="mt-1 font-display text-2xl font-semibold text-slate-900">{value}</p>
           </Card>
         ))}
       </div>
 
-      <div className="mt-6 flex gap-2 border-b border-slate-200">
+      <div className="mt-6 flex gap-1 border-b border-slate-200">
         {(["class", "ranking", "questions", "topics"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-4 py-2 text-sm font-medium capitalize ${
-              tab === t ? "border-b-2 border-indigo-600 text-indigo-600" : "text-slate-500"
+            className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium capitalize transition-colors ${
+              tab === t ? "border-indigo-600 text-indigo-600" : "border-transparent text-slate-500 hover:text-slate-700"
             }`}
           >
             {t}
@@ -72,10 +75,10 @@ export default function ResultDetail() {
         ))}
       </div>
 
-      <div className="mt-4">
+      <div className="mt-4 animate-fade-in">
         {tab === "class" && (
           <Card>
-            <h3 className="mb-4 text-sm font-semibold text-slate-900">Score Distribution</h3>
+            <h3 className="mb-4 font-display text-sm font-semibold text-slate-900">Score Distribution</h3>
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={distributionData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -101,7 +104,7 @@ export default function ResultDetail() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {classData.ranking.map((r) => (
-                <tr key={r.student_id}>
+                <tr key={r.student_id} className="transition-colors hover:bg-slate-50">
                   <td className="px-4 py-3 font-semibold text-slate-900">#{r.rank}</td>
                   <td className="px-4 py-3">
                     <Link to={`/teacher/students/${r.db_id}`} className="font-medium text-slate-900 hover:text-indigo-600">
@@ -126,7 +129,10 @@ export default function ResultDetail() {
           <div className="space-y-4">
             {questionData.difficult_questions.length > 0 && (
               <Card>
-                <h3 className="mb-2 text-sm font-semibold text-rose-600">Difficult Questions</h3>
+                <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-rose-600">
+                  <AlertTriangle className="h-4 w-4" />
+                  Difficult Questions
+                </h3>
                 <ul className="space-y-1 text-sm text-slate-600">
                   {questionData.difficult_questions.map((q) => (
                     <li key={q.question_number}>
@@ -170,7 +176,10 @@ export default function ResultDetail() {
           <div className="space-y-4">
             {topicData.needs_improvement.length > 0 && (
               <Card>
-                <h3 className="mb-2 text-sm font-semibold text-rose-600">Needs Improvement</h3>
+                <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-rose-600">
+                  <AlertTriangle className="h-4 w-4" />
+                  Needs Improvement
+                </h3>
                 <ul className="space-y-1 text-sm text-slate-600">
                   {topicData.needs_improvement.map((t) => (
                     <li key={t.topic}>
@@ -191,7 +200,7 @@ export default function ResultDetail() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {topicData.topics.map((t) => (
-                  <tr key={t.topic}>
+                  <tr key={t.topic} className="transition-colors hover:bg-slate-50">
                     <td className="px-4 py-3 font-medium text-slate-900">{t.topic}</td>
                     <td className="px-4 py-3 text-slate-500">{t.questions}</td>
                     <td className="px-4 py-3 text-slate-500">{t.correct}</td>

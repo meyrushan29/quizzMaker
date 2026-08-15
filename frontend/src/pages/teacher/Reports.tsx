@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { Download, FileSpreadsheet } from "lucide-react"
 import { api, downloadReport } from "../../lib/api"
 import type { Quiz, Student } from "../../lib/types"
 import { Button, Card, Field, PageHeader, inputClass } from "../../components/ui"
@@ -20,7 +21,7 @@ export default function Reports() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
-          <h3 className="text-sm font-semibold text-slate-900">Quiz Report</h3>
+          <h3 className="font-display text-sm font-semibold text-slate-900">Quiz Report</h3>
           <p className="mt-1 text-sm text-slate-500">Class results, question analysis, and topic breakdown for a completed quiz.</p>
           <div className="mt-4">
             <Field label="Quiz">
@@ -42,6 +43,7 @@ export default function Reports() {
                   disabled={!selectedQuiz}
                   onClick={() => downloadReport(`/api/reports/quizzes/${selectedQuiz}/${kind}?format=csv`, `${kind}_report_${selectedQuiz}.csv`)}
                 >
+                  <Download className="h-4 w-4" />
                   {kind[0].toUpperCase() + kind.slice(1)} CSV
                 </Button>
                 <Button
@@ -49,6 +51,7 @@ export default function Reports() {
                   disabled={!selectedQuiz}
                   onClick={() => downloadReport(`/api/reports/quizzes/${selectedQuiz}/${kind}?format=xlsx`, `${kind}_report_${selectedQuiz}.xlsx`)}
                 >
+                  <FileSpreadsheet className="h-4 w-4" />
                   Excel
                 </Button>
               </div>
@@ -57,7 +60,7 @@ export default function Reports() {
         </Card>
 
         <Card>
-          <h3 className="text-sm font-semibold text-slate-900">Student Report</h3>
+          <h3 className="font-display text-sm font-semibold text-slate-900">Student Report</h3>
           <p className="mt-1 text-sm text-slate-500">Quiz history and performance trend for one student.</p>
           <div className="mt-4">
             <Field label="Student">
@@ -77,6 +80,7 @@ export default function Reports() {
               disabled={!selectedStudent}
               onClick={() => downloadReport(`/api/reports/students/${selectedStudent}?format=csv`, `student_report_${selectedStudent}.csv`)}
             >
+              <Download className="h-4 w-4" />
               CSV
             </Button>
             <Button
@@ -84,6 +88,7 @@ export default function Reports() {
               disabled={!selectedStudent}
               onClick={() => downloadReport(`/api/reports/students/${selectedStudent}?format=xlsx`, `student_report_${selectedStudent}.xlsx`)}
             >
+              <FileSpreadsheet className="h-4 w-4" />
               Excel
             </Button>
           </div>

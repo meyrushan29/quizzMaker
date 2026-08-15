@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
+import { Copy, FileText, PlusCircle, Trash2 } from "lucide-react"
 import { api, ApiError } from "../../lib/api"
 import type { Quiz } from "../../lib/types"
-import { Badge, Button, EmptyState, ErrorBanner, PageHeader, Spinner, Table } from "../../components/ui"
+import { Badge, Button, ConfirmDialog, EmptyState, ErrorBanner, PageHeader, Spinner, Table } from "../../components/ui"
 
 export default function Quizzes() {
   const [quizzes, setQuizzes] = useState<Quiz[] | null>(null)
   const [error, setError] = useState("")
   const [statusFilter, setStatusFilter] = useState("")
+  const [deleteTarget, setDeleteTarget] = useState<Quiz | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const navigate = useNavigate()
 
   async function load() {
@@ -29,10 +32,16 @@ export default function Quizzes() {
     await load()
   }
 
-  async function handleDelete(quiz: Quiz) {
-    if (!confirm(`Delete "${quiz.title}"? This cannot be undone.`)) return
-    await api.delete(`/api/quizzes/${quiz.id}`)
-    await load()
+  async function handleDelete() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      await api.delete(`/api/quizzes/${deleteTarget.id}`)
+      setDeleteTarget(null)
+      await load()
+    } finally {
+      setDeleting(false)
+    }
   }
 
   async function handleStart(quiz: Quiz) {
@@ -46,18 +55,21 @@ export default function Quizzes() {
         subtitle="Create and manage your quiz library."
         actions={
           <Link to="/teacher/quizzes/new">
-            <Button>Create Quiz</Button>
+            <Button>
+              <PlusCircle className="h-4 w-4" />
+              Create Quiz
+            </Button>
           </Link>
         }
       />
 
-      <div className="mb-4 flex gap-2">
+      <div className="mb-4 flex flex-wrap gap-2">
         {["", "draft", "live_lobby", "live_active", "completed"].map((s) => (
           <button
             key={s}
             onClick={() => setStatusFilter(s)}
-            className={`rounded-full px-3 py-1.5 text-xs font-medium ${
-              statusFilter === s ? "bg-indigo-600 text-white" : "bg-white text-slate-500 border border-slate-200"
+            className={`rounded-full px-3 py-1.5 text-xs font-medium capitalize transition-colors ${
+              statusFilter === s ? "bg-indigo-600 text-white shadow-sm" : "border border-slate-200 bg-white text-slate-500 hover:border-slate-300"
             }`}
           >
             {s === "" ? "All" : s.replace("_", " ")}
@@ -69,7 +81,7 @@ export default function Quizzes() {
       {!quizzes ? (
         <Spinner />
       ) : quizzes.length === 0 ? (
-        <EmptyState title="No quizzes found" description="Create your first quiz to get started." />
+        <EmptyState title="No quizzes found" description="Create your first quiz to get started." icon={<FileText className="h-5 w-5" />} />
       ) : (
         <Table>
           <thead className="bg-slate-50 text-xs uppercase text-slate-500">
@@ -84,7 +96,7 @@ export default function Quizzes() {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {quizzes.map((quiz) => (
-              <tr key={quiz.id} className="hover:bg-slate-50">
+              <tr key={quiz.id} className="transition-colors hover:bg-slate-50">
                 <td className="px-4 py-3 font-medium text-slate-900">
                   {quiz.status === "draft" ? (
                     <Link to={`/teacher/quizzes/${quiz.id}`} className="hover:text-indigo-600">
@@ -102,25 +114,25 @@ export default function Quizzes() {
                 </td>
                 <td className="px-4 py-3 text-right space-x-3 whitespace-nowrap">
                   {quiz.status === "draft" && (
-                    <button onClick={() => handleStart(quiz)} className="text-sm text-emerald-600 hover:underline">
+                    <button onClick={() => handleStart(quiz)} className="text-sm font-medium text-emerald-600 hover:underline">
                       Start Live
                     </button>
                   )}
                   {(quiz.status === "live_lobby" || quiz.status === "live_active") && (
-                    <Link to={`/teacher/live/${quiz.id}`} className="text-sm text-emerald-600 hover:underline">
+                    <Link to={`/teacher/live/${quiz.id}`} className="text-sm font-medium text-emerald-600 hover:underline">
                       Monitor
                     </Link>
                   )}
                   {quiz.status === "completed" && (
-                    <Link to={`/teacher/results/${quiz.id}`} className="text-sm text-indigo-600 hover:underline">
+                    <Link to={`/teacher/results/${quiz.id}`} className="text-sm font-medium text-indigo-600 hover:underline">
                       Results
                     </Link>
                   )}
-                  <button onClick={() => handleDuplicate(quiz)} className="text-sm text-slate-500 hover:underline">
-                    Duplicate
+                  <button onClick={() => handleDuplicate(quiz)} className="inline-flex items-center gap-1 rounded-lg p-1.5 align-middle text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label={`Duplicate ${quiz.title}`}>
+                    <Copy className="h-4 w-4" />
                   </button>
-                  <button onClick={() => handleDelete(quiz)} className="text-sm text-rose-600 hover:underline">
-                    Delete
+                  <button onClick={() => setDeleteTarget(quiz)} className="inline-flex items-center gap-1 rounded-lg p-1.5 align-middle text-slate-400 hover:bg-rose-50 hover:text-rose-600" aria-label={`Delete ${quiz.title}`}>
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 </td>
               </tr>
@@ -128,6 +140,16 @@ export default function Quizzes() {
           </tbody>
         </Table>
       )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+        title="Delete quiz?"
+        description={deleteTarget ? `Delete "${deleteTarget.title}"? This cannot be undone.` : undefined}
+        confirmLabel="Delete"
+        busy={deleting}
+      />
     </div>
   )
 }

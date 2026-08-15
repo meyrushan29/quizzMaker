@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
+import { ChevronDown, ChevronUp, Copy, Pencil, PlusCircle, Trash2 } from "lucide-react"
 import { api, ApiError } from "../../lib/api"
 import type { Question, QuizDetail } from "../../lib/types"
-import { Button, Card, ErrorBanner, Field, PageHeader, Spinner, inputClass } from "../../components/ui"
+import { Button, Card, ConfirmDialog, ErrorBanner, Field, Modal, PageHeader, Spinner, inputClass } from "../../components/ui"
 
 interface QuizFormState {
   title: string
@@ -62,6 +63,8 @@ export default function QuizEditor() {
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null)
   const [questionForm, setQuestionForm] = useState(EMPTY_QUESTION)
   const [questionError, setQuestionError] = useState("")
+  const [deleteTarget, setDeleteTarget] = useState<Question | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   async function loadQuiz(quizId: string) {
     setLoading(true)
@@ -155,10 +158,16 @@ export default function QuizEditor() {
     }
   }
 
-  async function handleDeleteQuestion(question: Question) {
-    if (!quiz || !confirm("Delete this question?")) return
-    await api.delete(`/api/quizzes/${quiz.id}/questions/${question.id}`)
-    await loadQuiz(String(quiz.id))
+  async function handleDeleteQuestion() {
+    if (!quiz || !deleteTarget) return
+    setDeleting(true)
+    try {
+      await api.delete(`/api/quizzes/${quiz.id}/questions/${deleteTarget.id}`)
+      setDeleteTarget(null)
+      await loadQuiz(String(quiz.id))
+    } finally {
+      setDeleting(false)
+    }
   }
 
   async function handleDuplicateQuestion(question: Question) {
@@ -198,7 +207,7 @@ export default function QuizEditor() {
       )}
 
       <Card className="mb-6">
-        <h2 className="text-lg font-semibold text-slate-900">Quiz Information</h2>
+        <h2 className="font-display text-lg font-semibold text-slate-900">Quiz Information</h2>
         <form className="mt-4 space-y-4" onSubmit={handleSaveSettings}>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Quiz Title">
@@ -286,7 +295,7 @@ export default function QuizEditor() {
                   checked={Boolean(form[key])}
                   onChange={(e) => setForm({ ...form, [key]: e.target.checked })}
                   disabled={!isEditable}
-                  className="h-4 w-4 rounded border-slate-300 text-indigo-600"
+                  className="h-4 w-4 rounded border-slate-300 accent-indigo-600"
                 />
                 {label}
               </label>
@@ -304,11 +313,16 @@ export default function QuizEditor() {
         <Card>
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">
+              <h2 className="font-display text-lg font-semibold text-slate-900">
                 Questions ({quiz.questions.length}) &middot; {quiz.total_marks} marks
               </h2>
             </div>
-            {isEditable && <Button onClick={openAddQuestion}>Add Question</Button>}
+            {isEditable && (
+              <Button onClick={openAddQuestion}>
+                <PlusCircle className="h-4 w-4" />
+                Add Question
+              </Button>
+            )}
           </div>
 
           {sortedQuestions.length === 0 ? (
@@ -316,7 +330,7 @@ export default function QuizEditor() {
           ) : (
             <div className="mt-4 space-y-3">
               {sortedQuestions.map((question, index) => (
-                <div key={question.id} className="rounded-xl border border-slate-200 p-4">
+                <div key={question.id} className="rounded-xl border border-slate-200 p-4 transition-colors hover:border-slate-300">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <p className="text-sm font-medium text-slate-900">
@@ -339,23 +353,21 @@ export default function QuizEditor() {
                       </div>
                     </div>
                     {isEditable && (
-                      <div className="flex flex-col items-end gap-1 text-xs">
-                        <div className="flex gap-1">
-                          <button onClick={() => moveQuestion(question, -1)} className="text-slate-400 hover:text-slate-700" title="Move up">
-                            ↑
-                          </button>
-                          <button onClick={() => moveQuestion(question, 1)} className="text-slate-400 hover:text-slate-700" title="Move down">
-                            ↓
-                          </button>
-                        </div>
-                        <button onClick={() => openEditQuestion(question)} className="text-indigo-600 hover:underline">
-                          Edit
+                      <div className="flex shrink-0 items-center gap-0.5">
+                        <button onClick={() => moveQuestion(question, -1)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30" disabled={index === 0} aria-label="Move up">
+                          <ChevronUp className="h-4 w-4" />
                         </button>
-                        <button onClick={() => handleDuplicateQuestion(question)} className="text-slate-500 hover:underline">
-                          Duplicate
+                        <button onClick={() => moveQuestion(question, 1)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30" disabled={index === sortedQuestions.length - 1} aria-label="Move down">
+                          <ChevronDown className="h-4 w-4" />
                         </button>
-                        <button onClick={() => handleDeleteQuestion(question)} className="text-rose-600 hover:underline">
-                          Delete
+                        <button onClick={() => openEditQuestion(question)} className="rounded-lg p-1.5 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600" aria-label="Edit question">
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button onClick={() => handleDuplicateQuestion(question)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Duplicate question">
+                          <Copy className="h-4 w-4" />
+                        </button>
+                        <button onClick={() => setDeleteTarget(question)} className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600" aria-label="Delete question">
+                          <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
                     )}
@@ -367,79 +379,85 @@ export default function QuizEditor() {
         </Card>
       )}
 
-      {showQuestionForm && (
-        <div className="fixed inset-0 z-20 flex items-center justify-center overflow-y-auto bg-slate-900/40 p-4" onClick={() => setShowQuestionForm(false)}>
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold text-slate-900">{editingQuestion ? "Edit Question" : "Add Question"}</h2>
-            <form className="mt-4 space-y-3" onSubmit={handleSaveQuestion}>
-              <Field label="Question">
-                <textarea
-                  value={questionForm.question_text}
-                  onChange={(e) => setQuestionForm({ ...questionForm, question_text: e.target.value })}
+      <Modal
+        open={showQuestionForm}
+        onClose={() => setShowQuestionForm(false)}
+        title={editingQuestion ? "Edit Question" : "Add Question"}
+        maxWidth="max-w-lg"
+      >
+        <form className="space-y-3" onSubmit={handleSaveQuestion}>
+          <Field label="Question">
+            <textarea
+              value={questionForm.question_text}
+              onChange={(e) => setQuestionForm({ ...questionForm, question_text: e.target.value })}
+              className={inputClass}
+              rows={2}
+              required
+            />
+          </Field>
+          {(["a", "b", "c", "d"] as const).map((letter) => (
+            <Field key={letter} label={`Option ${letter.toUpperCase()}`}>
+              <div className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="correct_answer"
+                  checked={questionForm.correct_answer === letter.toUpperCase()}
+                  onChange={() => setQuestionForm({ ...questionForm, correct_answer: letter.toUpperCase() as "A" })}
+                />
+                <input
+                  value={questionForm[`option_${letter}` as "option_a"]}
+                  onChange={(e) => setQuestionForm({ ...questionForm, [`option_${letter}`]: e.target.value })}
                   className={inputClass}
-                  rows={2}
                   required
                 />
-              </Field>
-              {(["a", "b", "c", "d"] as const).map((letter) => (
-                <Field key={letter} label={`Option ${letter.toUpperCase()}`}>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="correct_answer"
-                      checked={questionForm.correct_answer === letter.toUpperCase()}
-                      onChange={() => setQuestionForm({ ...questionForm, correct_answer: letter.toUpperCase() as "A" })}
-                    />
-                    <input
-                      value={questionForm[`option_${letter}` as "option_a"]}
-                      onChange={(e) => setQuestionForm({ ...questionForm, [`option_${letter}`]: e.target.value })}
-                      className={inputClass}
-                      required
-                    />
-                  </div>
-                </Field>
-              ))}
-              <p className="text-xs text-slate-400">Select the radio button next to the correct answer.</p>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <Field label="Marks">
-                  <input
-                    type="number"
-                    min={1}
-                    value={questionForm.marks}
-                    onChange={(e) => setQuestionForm({ ...questionForm, marks: Number(e.target.value) })}
-                    className={inputClass}
-                  />
-                </Field>
-                <Field label="Topic">
-                  <input
-                    value={questionForm.topic}
-                    onChange={(e) => setQuestionForm({ ...questionForm, topic: e.target.value })}
-                    className={inputClass}
-                  />
-                </Field>
-                <Field label="Difficulty">
-                  <select
-                    value={questionForm.difficulty}
-                    onChange={(e) => setQuestionForm({ ...questionForm, difficulty: e.target.value })}
-                    className={inputClass}
-                  >
-                    <option>Easy</option>
-                    <option>Medium</option>
-                    <option>Hard</option>
-                  </select>
-                </Field>
               </div>
-              {questionError && <p className="text-sm text-rose-600">{questionError}</p>}
-              <div className="flex justify-end gap-2 pt-2">
-                <Button type="button" variant="secondary" onClick={() => setShowQuestionForm(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit">{editingQuestion ? "Save Question" : "Add Question"}</Button>
-              </div>
-            </form>
+            </Field>
+          ))}
+          <p className="text-xs text-slate-400">Select the radio button next to the correct answer.</p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <Field label="Marks">
+              <input
+                type="number"
+                min={1}
+                value={questionForm.marks}
+                onChange={(e) => setQuestionForm({ ...questionForm, marks: Number(e.target.value) })}
+                className={inputClass}
+              />
+            </Field>
+            <Field label="Topic">
+              <input value={questionForm.topic} onChange={(e) => setQuestionForm({ ...questionForm, topic: e.target.value })} className={inputClass} />
+            </Field>
+            <Field label="Difficulty">
+              <select
+                value={questionForm.difficulty}
+                onChange={(e) => setQuestionForm({ ...questionForm, difficulty: e.target.value })}
+                className={inputClass}
+              >
+                <option>Easy</option>
+                <option>Medium</option>
+                <option>Hard</option>
+              </select>
+            </Field>
           </div>
-        </div>
-      )}
+          {questionError && <ErrorBanner message={questionError} />}
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="secondary" onClick={() => setShowQuestionForm(false)}>
+              Cancel
+            </Button>
+            <Button type="submit">{editingQuestion ? "Save Question" : "Add Question"}</Button>
+          </div>
+        </form>
+      </Modal>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteQuestion}
+        title="Delete question?"
+        description="This cannot be undone."
+        confirmLabel="Delete"
+        busy={deleting}
+      />
     </div>
   )
 }

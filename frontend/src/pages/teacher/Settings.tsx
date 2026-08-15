@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { CheckCircle2 } from "lucide-react"
 import { api } from "../../lib/api"
 import { Button, Card, Field, PageHeader, Spinner, inputClass } from "../../components/ui"
 
@@ -35,6 +36,7 @@ export default function Settings() {
     <div>
       <PageHeader title="Settings" subtitle="Defaults applied when you create a new quiz." />
       <Card className="max-w-2xl">
+        <h3 className="mb-4 font-display text-sm font-semibold text-slate-900">Quiz Defaults</h3>
         <form className="space-y-4" onSubmit={handleSave}>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Default Passing Percentage">
@@ -58,7 +60,7 @@ export default function Settings() {
               />
             </Field>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-2 sm:grid-cols-2">
             {(
               [
                 ["default_show_result_immediately", "Show Results Immediately"],
@@ -69,18 +71,26 @@ export default function Settings() {
                 ["default_allow_retake", "Allow Retakes"],
               ] as [keyof Preferences, string][]
             ).map(([key, label]) => (
-              <label key={key} className="flex items-center gap-2 text-sm text-slate-700">
+              <label
+                key={key}
+                className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-50"
+              >
                 <input
                   type="checkbox"
                   checked={Boolean(prefs[key])}
                   onChange={(e) => setPrefs({ ...prefs, [key]: e.target.checked })}
-                  className="h-4 w-4 rounded border-slate-300 text-indigo-600"
+                  className="h-4 w-4 rounded border-slate-300 accent-indigo-600"
                 />
                 {label}
               </label>
             ))}
           </div>
-          {saved && <p className="text-sm text-emerald-600">Settings saved.</p>}
+          {saved && (
+            <div className="flex items-center gap-1.5 text-sm text-emerald-600">
+              <CheckCircle2 className="h-4 w-4" />
+              Settings saved.
+            </div>
+          )}
           <Button type="submit">Save Settings</Button>
         </form>
       </Card>

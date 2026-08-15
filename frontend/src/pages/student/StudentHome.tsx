@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { Hash, Radio } from "lucide-react"
 import { api, ApiError } from "../../lib/api"
-import { Button, Card, EmptyState, Field, PageHeader, Spinner, inputClass } from "../../components/ui"
+import { Button, Card, EmptyState, ErrorBanner, Field, IconInput, PageHeader, Spinner } from "../../components/ui"
 
 interface AvailableQuiz {
   id: number
@@ -51,32 +52,41 @@ export default function StudentHome() {
       <PageHeader title="My Quizzes" subtitle="Join a live quiz using the code your teacher shares in class." />
 
       <Card className="mb-6">
-        <h3 className="text-sm font-semibold text-slate-900">Join with a Quiz Code</h3>
-        <form className="mt-3 flex flex-wrap gap-3" onSubmit={handleSubmitCode}>
+        <h3 className="font-display text-sm font-semibold text-slate-900">Join with a Quiz Code</h3>
+        <form className="mt-3 flex flex-wrap items-end gap-3" onSubmit={handleSubmitCode}>
           <Field label="Quiz Code">
-            <input
+            <IconInput
+              icon={<Hash className="h-4 w-4" />}
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
-              className={`${inputClass} w-48 text-center font-mono text-lg tracking-widest`}
+              className="w-48 text-center font-mono text-lg tracking-widest"
               placeholder="SCI742"
             />
           </Field>
-          <Button type="submit" variant="success" disabled={joining} className="self-end">
+          <Button type="submit" variant="success" loading={joining}>
             {joining ? "Joining..." : "Join Quiz"}
           </Button>
         </form>
-        {error && <p className="mt-3 text-sm text-rose-600">{error}</p>}
+        {error && (
+          <div className="mt-3">
+            <ErrorBanner message={error} />
+          </div>
+        )}
       </Card>
 
-      <h3 className="mb-3 text-sm font-semibold text-slate-900">Available Live Quizzes</h3>
+      <h3 className="mb-3 font-display text-sm font-semibold text-slate-900">Available Live Quizzes</h3>
       {!available ? (
         <Spinner />
       ) : available.length === 0 ? (
-        <EmptyState title="No live quizzes right now" description="Ask your teacher to start a quiz, then refresh this page." />
+        <EmptyState
+          title="No live quizzes right now"
+          description="Ask your teacher to start a quiz, then refresh this page."
+          icon={<Radio className="h-5 w-5" />}
+        />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid animate-slide-up gap-4 sm:grid-cols-2">
           {available.map((quiz) => (
-            <Card key={quiz.id}>
+            <Card key={quiz.id} interactive>
               <p className="font-semibold text-slate-900">{quiz.title}</p>
               <p className="mt-1 text-sm text-slate-500">
                 {quiz.subject} {quiz.chapter && `· ${quiz.chapter}`} · {quiz.duration} min

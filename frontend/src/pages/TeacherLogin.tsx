@@ -1,8 +1,9 @@
 import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
+import { Lock, Mail } from "lucide-react"
 import { useAuth } from "../lib/auth"
 import { ApiError } from "../lib/api"
-import { Button, Field, inputClass } from "../components/ui"
+import { AuthCard, Button, ErrorBanner, Field, IconInput } from "../components/ui"
 
 export default function TeacherLogin() {
   const [email, setEmail] = useState("")
@@ -27,44 +28,41 @@ export default function TeacherLogin() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
-      <div className="w-full max-w-md rounded-3xl bg-white p-8 shadow-xl">
-        <h1 className="text-3xl font-semibold text-slate-900">Teacher Login</h1>
-        <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-          <Field label="Email">
-            <input
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className={inputClass}
-              type="email"
-              placeholder="teacher@example.com"
-              required
-            />
-          </Field>
-          <Field label="Password">
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className={inputClass}
-              placeholder="••••••••"
-              required
-            />
-          </Field>
-          {error && <p className="text-sm text-rose-600">{error}</p>}
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Signing in..." : "Sign in"}
-          </Button>
-        </form>
-        <div className="mt-4 flex justify-between text-sm">
-          <Link to="/teacher/forgot-password" className="text-indigo-600 hover:underline">
-            Forgot password?
-          </Link>
-          <Link to="/" className="text-slate-400 hover:underline">
-            Back home
-          </Link>
-        </div>
+    <AuthCard title="Teacher Login" subtitle="Sign in to manage your classes and quizzes.">
+      <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
+        <Field label="Email">
+          <IconInput
+            icon={<Mail className="h-4 w-4" />}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            type="email"
+            placeholder="teacher@example.com"
+            required
+          />
+        </Field>
+        <Field label="Password">
+          <IconInput
+            icon={<Lock className="h-4 w-4" />}
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            required
+          />
+        </Field>
+        {error && <ErrorBanner message={error} />}
+        <Button type="submit" className="w-full" loading={loading}>
+          {loading ? "Signing in..." : "Sign in"}
+        </Button>
+      </form>
+      <div className="mt-5 flex justify-between text-sm">
+        <Link to="/teacher/forgot-password" className="font-medium text-indigo-600 hover:underline">
+          Forgot password?
+        </Link>
+        <Link to="/" className="text-slate-400 hover:underline">
+          Back home
+        </Link>
       </div>
-    </div>
+    </AuthCard>
   )
 }

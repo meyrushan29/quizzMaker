@@ -1,8 +1,32 @@
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
+import { Award, ClipboardList, PlusCircle, Radio, TrendingDown, TrendingUp, Users } from "lucide-react"
 import { api, ApiError } from "../../lib/api"
 import type { DashboardStats } from "../../lib/types"
-import { Badge, Button, Card, EmptyState, ErrorBanner, PageHeader, Spinner, StatCard, Table } from "../../components/ui"
+import { Badge, Button, Card, EmptyState, ErrorBanner, PageHeader, Skeleton, StatCard, Table } from "../../components/ui"
+
+function DashboardSkeleton() {
+  return (
+    <div>
+      <div className="mb-6 flex items-start justify-between">
+        <div className="space-y-2">
+          <Skeleton className="h-7 w-40" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Card key={i} className="h-24">
+            <Skeleton className="h-full w-full" />
+          </Card>
+        ))}
+      </div>
+      <Card className="mt-6">
+        <Skeleton className="h-56 w-full" />
+      </Card>
+    </div>
+  )
+}
 
 export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
@@ -16,7 +40,7 @@ export default function Dashboard() {
   }, [])
 
   if (error) return <ErrorBanner message={error} />
-  if (!stats) return <Spinner />
+  if (!stats) return <DashboardSkeleton />
 
   return (
     <div>
@@ -26,10 +50,16 @@ export default function Dashboard() {
         actions={
           <>
             <Link to="/teacher/quizzes/new">
-              <Button>Create Quiz</Button>
+              <Button>
+                <PlusCircle className="h-4 w-4" />
+                Create Quiz
+              </Button>
             </Link>
             <Link to="/teacher/live">
-              <Button variant="success">Start Live Quiz</Button>
+              <Button variant="success">
+                <Radio className="h-4 w-4" />
+                Start Live Quiz
+              </Button>
             </Link>
             <Link to="/teacher/students">
               <Button variant="secondary">Manage Students</Button>
@@ -41,20 +71,20 @@ export default function Dashboard() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-        <StatCard label="Total Students" value={stats.total_students} />
-        <StatCard label="Total Quizzes" value={stats.total_quizzes} />
-        <StatCard label="Completed Quizzes" value={stats.completed_quizzes} />
-        <StatCard label="Average Score" value={`${stats.average_class_score}%`} />
-        <StatCard label="Highest Score" value={`${stats.highest_score}%`} tone="good" />
-        <StatCard label="Lowest Score" value={`${stats.lowest_score}%`} tone="bad" />
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6 animate-slide-up">
+        <StatCard label="Total Students" value={stats.total_students} icon={<Users className="h-4 w-4" />} />
+        <StatCard label="Total Quizzes" value={stats.total_quizzes} icon={<ClipboardList className="h-4 w-4" />} />
+        <StatCard label="Completed Quizzes" value={stats.completed_quizzes} icon={<ClipboardList className="h-4 w-4" />} />
+        <StatCard label="Average Score" value={`${stats.average_class_score}%`} icon={<TrendingUp className="h-4 w-4" />} />
+        <StatCard label="Highest Score" value={`${stats.highest_score}%`} tone="good" icon={<Award className="h-4 w-4" />} />
+        <StatCard label="Lowest Score" value={`${stats.lowest_score}%`} tone="bad" icon={<TrendingDown className="h-4 w-4" />} />
       </div>
 
-      <Card className="mt-6">
-        <h2 className="text-lg font-semibold text-slate-900">Recent Quizzes</h2>
+      <Card className="mt-6 animate-slide-up">
+        <h2 className="font-display text-lg font-semibold text-slate-900">Recent Quizzes</h2>
         {stats.recent_quizzes.length === 0 ? (
           <div className="mt-4">
-            <EmptyState title="No quizzes yet" description="Create your first quiz to get started." />
+            <EmptyState title="No quizzes yet" description="Create your first quiz to get started." icon={<ClipboardList className="h-5 w-5" />} />
           </div>
         ) : (
           <div className="mt-4">
@@ -71,7 +101,7 @@ export default function Dashboard() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {stats.recent_quizzes.map((quiz) => (
-                  <tr key={quiz.id} className="hover:bg-slate-50">
+                  <tr key={quiz.id} className="transition-colors hover:bg-slate-50">
                     <td className="px-4 py-3 font-medium text-slate-900">
                       <Link to={`/teacher/results/${quiz.id}`} className="hover:text-indigo-600">
                         {quiz.title}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
+import { BarChart3 } from "lucide-react"
 import { api } from "../../lib/api"
 import type { Quiz } from "../../lib/types"
 import { Badge, Card, EmptyState, PageHeader, Spinner, Table, inputClass } from "../../components/ui"
@@ -52,7 +53,7 @@ export default function Results() {
       </Card>
 
       {filtered.length === 0 ? (
-        <EmptyState title="No completed quizzes yet" description="Results appear here once a live quiz has ended." />
+        <EmptyState title="No completed quizzes yet" description="Results appear here once a live quiz has ended." icon={<BarChart3 className="h-5 w-5" />} />
       ) : (
         <Table>
           <thead className="bg-slate-50 text-xs uppercase text-slate-500">
@@ -66,7 +67,7 @@ export default function Results() {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {filtered.map((quiz) => (
-              <tr key={quiz.id} className="hover:bg-slate-50">
+              <tr key={quiz.id} className="transition-colors hover:bg-slate-50">
                 <td className="px-4 py-3 font-medium text-slate-900">
                   <Link to={`/teacher/results/${quiz.id}`} className="hover:text-indigo-600">
                     {quiz.title}

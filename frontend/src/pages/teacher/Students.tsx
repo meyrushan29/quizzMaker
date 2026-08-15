@@ -2,7 +2,21 @@ import { useEffect, useRef, useState } from "react"
 import { api, ApiError } from "../../lib/api"
 import type { Student } from "../../lib/types"
 import { Link } from "react-router-dom"
-import { Badge, Button, Card, EmptyState, ErrorBanner, Field, PageHeader, Spinner, Table, inputClass } from "../../components/ui"
+import { CheckCircle2, Pencil, Trash2, Upload, UserPlus, Users } from "lucide-react"
+import {
+  Badge,
+  Button,
+  Card,
+  ConfirmDialog,
+  EmptyState,
+  ErrorBanner,
+  Field,
+  Modal,
+  PageHeader,
+  Spinner,
+  Table,
+  inputClass,
+} from "../../components/ui"
 
 const EMPTY_FORM = { student_id: "", name: "", grade: "Grade 10", class_name: "", subject: "Science", status: "active" }
 
@@ -17,6 +31,8 @@ export default function Students() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [formError, setFormError] = useState("")
   const [importMessage, setImportMessage] = useState("")
+  const [deleteTarget, setDeleteTarget] = useState<Student | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   async function load() {
@@ -77,10 +93,16 @@ export default function Students() {
     }
   }
 
-  async function handleDelete(student: Student) {
-    if (!confirm(`Delete ${student.name} (${student.student_id})? This cannot be undone.`)) return
-    await api.delete(`/api/students/${student.id}`)
-    await load()
+  async function handleDelete() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      await api.delete(`/api/students/${deleteTarget.id}`)
+      setDeleteTarget(null)
+      await load()
+    } finally {
+      setDeleting(false)
+    }
   }
 
   async function handleImport(event: React.ChangeEvent<HTMLInputElement>) {
@@ -114,16 +136,23 @@ export default function Students() {
         actions={
           <>
             <Button variant="secondary" onClick={() => fileInputRef.current?.click()}>
+              <Upload className="h-4 w-4" />
               Import CSV
             </Button>
             <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleImport} />
-            <Button onClick={openCreate}>Add Student</Button>
+            <Button onClick={openCreate}>
+              <UserPlus className="h-4 w-4" />
+              Add Student
+            </Button>
           </>
         }
       />
 
       {importMessage && (
-        <div className="mb-4 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm text-indigo-700">{importMessage}</div>
+        <div className="mb-4 flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm text-indigo-700">
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          {importMessage}
+        </div>
       )}
       {error && <ErrorBanner message={error} />}
 
@@ -154,7 +183,7 @@ export default function Students() {
       {!students ? (
         <Spinner />
       ) : filtered.length === 0 ? (
-        <EmptyState title="No students found" description="Add a student or adjust your filters." />
+        <EmptyState title="No students found" description="Add a student or adjust your filters." icon={<Users className="h-5 w-5" />} />
       ) : (
         <Table>
           <thead className="bg-slate-50 text-xs uppercase text-slate-500">
@@ -171,7 +200,7 @@ export default function Students() {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {filtered.map((student) => (
-              <tr key={student.id} className="hover:bg-slate-50">
+              <tr key={student.id} className="transition-colors hover:bg-slate-50">
                 <td className="px-4 py-3 font-mono text-xs text-slate-600">{student.student_id}</td>
                 <td className="px-4 py-3 font-medium text-slate-900">
                   <Link to={`/teacher/students/${student.id}`} className="hover:text-indigo-600">
@@ -186,12 +215,14 @@ export default function Students() {
                 </td>
                 <td className="px-4 py-3 text-slate-400">{new Date(student.created_at).toLocaleDateString()}</td>
                 <td className="px-4 py-3 text-right">
-                  <button onClick={() => openEdit(student)} className="mr-3 text-sm text-indigo-600 hover:underline">
-                    Edit
-                  </button>
-                  <button onClick={() => handleDelete(student)} className="text-sm text-rose-600 hover:underline">
-                    Delete
-                  </button>
+                  <div className="flex justify-end gap-1">
+                    <button onClick={() => openEdit(student)} className="rounded-lg p-1.5 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600" aria-label={`Edit ${student.name}`}>
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button onClick={() => setDeleteTarget(student)} className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600" aria-label={`Delete ${student.name}`}>
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -199,57 +230,58 @@ export default function Students() {
         </Table>
       )}
 
-      {showForm && (
-        <div className="fixed inset-0 z-20 flex items-center justify-center bg-slate-900/40 p-4" onClick={() => setShowForm(false)}>
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold text-slate-900">{editing ? "Edit Student" : "Add Student"}</h2>
-            <form className="mt-4 space-y-3" onSubmit={handleSubmit}>
-              <Field label="Student ID">
-                <input
-                  value={form.student_id}
-                  onChange={(e) => setForm({ ...form, student_id: e.target.value })}
-                  className={inputClass}
-                  disabled={!!editing}
-                  required
-                />
-              </Field>
-              <Field label="Full Name">
-                <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputClass} required />
-              </Field>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Grade">
-                  <input value={form.grade} onChange={(e) => setForm({ ...form, grade: e.target.value })} className={inputClass} />
-                </Field>
-                <Field label="Class">
-                  <input
-                    value={form.class_name}
-                    onChange={(e) => setForm({ ...form, class_name: e.target.value })}
-                    className={inputClass}
-                  />
-                </Field>
-              </div>
-              <Field label="Subject">
-                <input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} className={inputClass} />
-              </Field>
-              {editing && (
-                <Field label="Status">
-                  <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} className={inputClass}>
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                  </select>
-                </Field>
-              )}
-              {formError && <p className="text-sm text-rose-600">{formError}</p>}
-              <div className="flex justify-end gap-2 pt-2">
-                <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit">{editing ? "Save Changes" : "Add Student"}</Button>
-              </div>
-            </form>
+      <Modal open={showForm} onClose={() => setShowForm(false)} title={editing ? "Edit Student" : "Add Student"}>
+        <form className="space-y-3" onSubmit={handleSubmit}>
+          <Field label="Student ID">
+            <input
+              value={form.student_id}
+              onChange={(e) => setForm({ ...form, student_id: e.target.value })}
+              className={inputClass}
+              disabled={!!editing}
+              required
+            />
+          </Field>
+          <Field label="Full Name">
+            <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputClass} required />
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Grade">
+              <input value={form.grade} onChange={(e) => setForm({ ...form, grade: e.target.value })} className={inputClass} />
+            </Field>
+            <Field label="Class">
+              <input value={form.class_name} onChange={(e) => setForm({ ...form, class_name: e.target.value })} className={inputClass} />
+            </Field>
           </div>
-        </div>
-      )}
+          <Field label="Subject">
+            <input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} className={inputClass} />
+          </Field>
+          {editing && (
+            <Field label="Status">
+              <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} className={inputClass}>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </Field>
+          )}
+          {formError && <ErrorBanner message={formError} />}
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>
+              Cancel
+            </Button>
+            <Button type="submit">{editing ? "Save Changes" : "Add Student"}</Button>
+          </div>
+        </form>
+      </Modal>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+        title="Delete student?"
+        description={deleteTarget ? `Delete ${deleteTarget.name} (${deleteTarget.student_id})? This cannot be undone.` : undefined}
+        confirmLabel="Delete"
+        busy={deleting}
+      />
     </div>
   )
 }

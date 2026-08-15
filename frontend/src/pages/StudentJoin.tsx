@@ -1,41 +1,38 @@
 import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
+import { Hash, IdCard, User } from "lucide-react"
 import { useAuth } from "../lib/auth"
 import { api, ApiError } from "../lib/api"
-import { Button, Field, inputClass } from "../components/ui"
+import { AuthCard, Button, ErrorBanner, Field, IconInput } from "../components/ui"
 
 export default function StudentJoin() {
   const [mode, setMode] = useState<"quick" | "roster">("quick")
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
-      <div className="w-full max-w-md rounded-3xl bg-white p-8 shadow-xl">
-        <h1 className="text-3xl font-semibold text-slate-900">Student Login</h1>
-
-        <div className="mt-5 flex rounded-xl bg-slate-100 p-1 text-sm font-medium">
-          <button
-            type="button"
-            onClick={() => setMode("quick")}
-            className={`flex-1 rounded-lg py-2 transition ${mode === "quick" ? "bg-white text-slate-900 shadow" : "text-slate-500"}`}
-          >
-            Join a Quiz
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("roster")}
-            className={`flex-1 rounded-lg py-2 transition ${mode === "roster" ? "bg-white text-slate-900 shadow" : "text-slate-500"}`}
-          >
-            Student ID Login
-          </button>
-        </div>
-
-        {mode === "quick" ? <QuickJoinForm /> : <RosterLoginForm />}
-
-        <Link to="/" className="mt-4 block text-sm text-slate-400 hover:underline">
-          Back home
-        </Link>
+    <AuthCard title="Student Login" subtitle="Join a live quiz or sign in with your Student ID.">
+      <div className="mt-5 flex rounded-xl bg-slate-100 p-1 text-sm font-medium">
+        <button
+          type="button"
+          onClick={() => setMode("quick")}
+          className={`flex-1 rounded-lg py-2 transition-colors ${mode === "quick" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}
+        >
+          Join a Quiz
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode("roster")}
+          className={`flex-1 rounded-lg py-2 transition-colors ${mode === "roster" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}
+        >
+          Student ID Login
+        </button>
       </div>
-    </div>
+
+      {mode === "quick" ? <QuickJoinForm /> : <RosterLoginForm />}
+
+      <Link to="/" className="mt-4 block text-sm text-slate-400 hover:underline">
+        Back home
+      </Link>
+    </AuthCard>
   )
 }
 
@@ -73,18 +70,19 @@ function QuickJoinForm() {
       <p className="mt-4 text-sm text-slate-500">Enter the quiz code your teacher shared and your name to join instantly.</p>
       <form className="mt-4 space-y-4" onSubmit={handleSubmit}>
         <Field label="Quiz Code">
-          <input
+          <IconInput
+            icon={<Hash className="h-4 w-4" />}
             value={quizCode}
             onChange={(e) => setQuizCode(e.target.value.toUpperCase())}
-            className={`${inputClass} text-center font-mono text-lg tracking-widest`}
+            className="text-center font-mono text-lg tracking-widest"
             placeholder="SCI742"
           />
         </Field>
         <Field label="Your Name">
-          <input value={name} onChange={(e) => setName(e.target.value)} className={inputClass} placeholder="Kavin Raj" />
+          <IconInput icon={<User className="h-4 w-4" />} value={name} onChange={(e) => setName(e.target.value)} placeholder="Kavin Raj" />
         </Field>
-        {error && <p className="text-sm text-rose-600">{error}</p>}
-        <Button type="submit" variant="success" className="w-full" disabled={loading}>
+        {error && <ErrorBanner message={error} />}
+        <Button type="submit" variant="success" className="w-full" loading={loading}>
           {loading ? "Joining..." : "Join Quiz"}
         </Button>
       </form>
@@ -123,19 +121,19 @@ function RosterLoginForm() {
       <p className="mt-4 text-sm text-slate-500">Enter the Student ID and name your teacher gave you.</p>
       <form className="mt-4 space-y-4" onSubmit={handleSubmit}>
         <Field label="Student ID">
-          <input
+          <IconInput
+            icon={<IdCard className="h-4 w-4" />}
             value={studentId}
             onChange={(e) => setStudentId(e.target.value)}
-            className={inputClass}
             placeholder="STU001"
             autoCapitalize="characters"
           />
         </Field>
         <Field label="Student Name">
-          <input value={name} onChange={(e) => setName(e.target.value)} className={inputClass} placeholder="Kavin Raj" />
+          <IconInput icon={<User className="h-4 w-4" />} value={name} onChange={(e) => setName(e.target.value)} placeholder="Kavin Raj" />
         </Field>
-        {error && <p className="text-sm text-rose-600">{error}</p>}
-        <Button type="submit" variant="success" className="w-full" disabled={loading}>
+        {error && <ErrorBanner message={error} />}
+        <Button type="submit" variant="success" className="w-full" loading={loading}>
           {loading ? "Signing in..." : "Continue"}
         </Button>
       </form>

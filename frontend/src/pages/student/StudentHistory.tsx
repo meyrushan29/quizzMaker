@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Line, LineChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
+import { Award, History, Target } from "lucide-react"
 import { api } from "../../lib/api"
 import type { HistoryEntry } from "../../lib/types"
 import { Card, EmptyState, PageHeader, Spinner, Table } from "../../components/ui"
@@ -23,26 +24,35 @@ export default function StudentHistory() {
       <PageHeader title="My Quiz History" subtitle="Every quiz you've completed and how you performed." />
 
       {history.length === 0 ? (
-        <EmptyState title="No quizzes completed yet" description="Join a live quiz to see your results here." />
+        <EmptyState title="No quizzes completed yet" description="Join a live quiz to see your results here." icon={<History className="h-5 w-5" />} />
       ) : (
         <>
           <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
             <Card>
-              <p className="text-xs uppercase text-slate-500">Quizzes Taken</p>
-              <p className="mt-1 text-2xl font-semibold text-slate-900">{history.length}</p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Quizzes Taken</p>
+                <History className="h-4 w-4 text-slate-400" />
+              </div>
+              <p className="mt-1 font-display text-2xl font-semibold text-slate-900">{history.length}</p>
             </Card>
             <Card>
-              <p className="text-xs uppercase text-slate-500">Average Score</p>
-              <p className="mt-1 text-2xl font-semibold text-slate-900">{average}%</p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Average Score</p>
+                <Target className="h-4 w-4 text-slate-400" />
+              </div>
+              <p className="mt-1 font-display text-2xl font-semibold text-slate-900">{average}%</p>
             </Card>
             <Card>
-              <p className="text-xs uppercase text-slate-500">Best Score</p>
-              <p className="mt-1 text-2xl font-semibold text-emerald-600">{Math.max(...history.map((h) => h.percentage))}%</p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Best Score</p>
+                <Award className="h-4 w-4 text-emerald-500" />
+              </div>
+              <p className="mt-1 font-display text-2xl font-semibold text-emerald-600">{Math.max(...history.map((h) => h.percentage))}%</p>
             </Card>
           </div>
 
           <Card className="mb-6">
-            <h3 className="mb-4 text-sm font-semibold text-slate-900">Performance Trend</h3>
+            <h3 className="mb-4 font-display text-sm font-semibold text-slate-900">Performance Trend</h3>
             <ResponsiveContainer width="100%" height={240}>
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -68,7 +78,7 @@ export default function StudentHistory() {
                 <tr
                   key={i}
                   onClick={() => navigate(`/student/result/${h.session_id}`)}
-                  className="cursor-pointer hover:bg-slate-50"
+                  className="cursor-pointer transition-colors hover:bg-slate-50"
                 >
                   <td className="px-4 py-3 font-medium text-slate-900">{h.quiz_title}</td>
                   <td className="px-4 py-3 text-slate-500">{new Date(h.date).toLocaleDateString()}</td>

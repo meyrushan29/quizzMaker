@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react"
+import { CheckCircle2, Layers, Pencil, PlusCircle, Trash2 } from "lucide-react"
 import { api, ApiError } from "../../lib/api"
 import type { BankQuestion, Quiz } from "../../lib/types"
-import { Button, Card, EmptyState, ErrorBanner, Field, PageHeader, Spinner, Table, inputClass } from "../../components/ui"
+import { Button, Card, ConfirmDialog, EmptyState, ErrorBanner, Field, Modal, PageHeader, Spinner, Table, inputClass } from "../../components/ui"
 
 const EMPTY_FORM = {
   question_text: "",
@@ -27,6 +28,8 @@ export default function QuestionBank() {
   const [editing, setEditing] = useState<BankQuestion | null>(null)
   const [form, setForm] = useState(EMPTY_FORM)
   const [message, setMessage] = useState("")
+  const [deleteTarget, setDeleteTarget] = useState<BankQuestion | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   async function load() {
     try {
@@ -83,10 +86,16 @@ export default function QuestionBank() {
     await load()
   }
 
-  async function handleDelete(question: BankQuestion) {
-    if (!confirm("Remove this question from the bank?")) return
-    await api.delete(`/api/question-bank/${question.id}`)
-    await load()
+  async function handleDelete() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      await api.delete(`/api/question-bank/${deleteTarget.id}`)
+      setDeleteTarget(null)
+      await load()
+    } finally {
+      setDeleting(false)
+    }
   }
 
   async function handleAddToQuiz(question: BankQuestion, quizId: number) {
@@ -101,10 +110,20 @@ export default function QuestionBank() {
       <PageHeader
         title="Question Bank"
         subtitle="Save reusable questions and add them to any draft quiz."
-        actions={<Button onClick={openCreate}>Add Question</Button>}
+        actions={
+          <Button onClick={openCreate}>
+            <PlusCircle className="h-4 w-4" />
+            Add Question
+          </Button>
+        }
       />
 
-      {message && <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-700">{message}</div>}
+      {message && (
+        <div className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-700">
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          {message}
+        </div>
+      )}
       {error && <ErrorBanner message={error} />}
 
       <Card className="mb-4">
@@ -119,7 +138,7 @@ export default function QuestionBank() {
       {!questions ? (
         <Spinner />
       ) : questions.length === 0 ? (
-        <EmptyState title="Question bank is empty" description="Add a question to reuse it across quizzes." />
+        <EmptyState title="Question bank is empty" description="Add a question to reuse it across quizzes." icon={<Layers className="h-5 w-5" />} />
       ) : (
         <Table>
           <thead className="bg-slate-50 text-xs uppercase text-slate-500">
@@ -133,7 +152,7 @@ export default function QuestionBank() {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {questions.map((q) => (
-              <tr key={q.id} className="hover:bg-slate-50">
+              <tr key={q.id} className="transition-colors hover:bg-slate-50">
                 <td className="max-w-sm px-4 py-3 font-medium text-slate-900">{q.question_text}</td>
                 <td className="px-4 py-3 text-slate-500">{q.topic}</td>
                 <td className="px-4 py-3 text-slate-500">{q.difficulty}</td>
@@ -153,13 +172,15 @@ export default function QuestionBank() {
                     ))}
                   </select>
                 </td>
-                <td className="px-4 py-3 text-right space-x-3 whitespace-nowrap">
-                  <button onClick={() => openEdit(q)} className="text-sm text-indigo-600 hover:underline">
-                    Edit
-                  </button>
-                  <button onClick={() => handleDelete(q)} className="text-sm text-rose-600 hover:underline">
-                    Delete
-                  </button>
+                <td className="px-4 py-3 text-right">
+                  <div className="flex justify-end gap-1">
+                    <button onClick={() => openEdit(q)} className="rounded-lg p-1.5 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600" aria-label="Edit question">
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button onClick={() => setDeleteTarget(q)} className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600" aria-label="Delete question">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -167,70 +188,71 @@ export default function QuestionBank() {
         </Table>
       )}
 
-      {showForm && (
-        <div className="fixed inset-0 z-20 flex items-center justify-center overflow-y-auto bg-slate-900/40 p-4" onClick={() => setShowForm(false)}>
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold text-slate-900">{editing ? "Edit Question" : "Add Question"}</h2>
-            <form className="mt-4 space-y-3" onSubmit={handleSubmit}>
-              <Field label="Question">
-                <textarea
-                  value={form.question_text}
-                  onChange={(e) => setForm({ ...form, question_text: e.target.value })}
+      <Modal open={showForm} onClose={() => setShowForm(false)} title={editing ? "Edit Question" : "Add Question"} maxWidth="max-w-lg">
+        <form className="space-y-3" onSubmit={handleSubmit}>
+          <Field label="Question">
+            <textarea
+              value={form.question_text}
+              onChange={(e) => setForm({ ...form, question_text: e.target.value })}
+              className={inputClass}
+              rows={2}
+              required
+            />
+          </Field>
+          {(["a", "b", "c", "d"] as const).map((letter) => (
+            <Field key={letter} label={`Option ${letter.toUpperCase()}`}>
+              <div className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="bank_correct_answer"
+                  checked={form.correct_answer === letter.toUpperCase()}
+                  onChange={() => setForm({ ...form, correct_answer: letter.toUpperCase() as "A" })}
+                />
+                <input
+                  value={form[`option_${letter}` as "option_a"]}
+                  onChange={(e) => setForm({ ...form, [`option_${letter}`]: e.target.value })}
                   className={inputClass}
-                  rows={2}
                   required
                 />
-              </Field>
-              {(["a", "b", "c", "d"] as const).map((letter) => (
-                <Field key={letter} label={`Option ${letter.toUpperCase()}`}>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="bank_correct_answer"
-                      checked={form.correct_answer === letter.toUpperCase()}
-                      onChange={() => setForm({ ...form, correct_answer: letter.toUpperCase() as "A" })}
-                    />
-                    <input
-                      value={form[`option_${letter}` as "option_a"]}
-                      onChange={(e) => setForm({ ...form, [`option_${letter}`]: e.target.value })}
-                      className={inputClass}
-                      required
-                    />
-                  </div>
-                </Field>
-              ))}
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Subject">
-                  <input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} className={inputClass} />
-                </Field>
-                <Field label="Grade">
-                  <input value={form.grade} onChange={(e) => setForm({ ...form, grade: e.target.value })} className={inputClass} />
-                </Field>
-                <Field label="Topic">
-                  <input value={form.topic} onChange={(e) => setForm({ ...form, topic: e.target.value })} className={inputClass} />
-                </Field>
-                <Field label="Difficulty">
-                  <select
-                    value={form.difficulty}
-                    onChange={(e) => setForm({ ...form, difficulty: e.target.value })}
-                    className={inputClass}
-                  >
-                    <option>Easy</option>
-                    <option>Medium</option>
-                    <option>Hard</option>
-                  </select>
-                </Field>
               </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit">{editing ? "Save Changes" : "Add Question"}</Button>
-              </div>
-            </form>
+            </Field>
+          ))}
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Subject">
+              <input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} className={inputClass} />
+            </Field>
+            <Field label="Grade">
+              <input value={form.grade} onChange={(e) => setForm({ ...form, grade: e.target.value })} className={inputClass} />
+            </Field>
+            <Field label="Topic">
+              <input value={form.topic} onChange={(e) => setForm({ ...form, topic: e.target.value })} className={inputClass} />
+            </Field>
+            <Field label="Difficulty">
+              <select value={form.difficulty} onChange={(e) => setForm({ ...form, difficulty: e.target.value })} className={inputClass}>
+                <option>Easy</option>
+                <option>Medium</option>
+                <option>Hard</option>
+              </select>
+            </Field>
           </div>
-        </div>
-      )}
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>
+              Cancel
+            </Button>
+            <Button type="submit">{editing ? "Save Changes" : "Add Question"}</Button>
+          </div>
+        </form>
+      </Modal>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+        title="Remove question?"
+        description="Remove this question from the bank? This cannot be undone."
+        confirmLabel="Remove"
+        busy={deleting}
+      />
     </div>
   )
 }

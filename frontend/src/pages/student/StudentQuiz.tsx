@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
+import { Check, Clock, WifiOff } from "lucide-react"
 import { api, ApiError } from "../../lib/api"
 import type { SessionState } from "../../lib/types"
 import { useAuth } from "../../lib/auth"
 import { useLiveSocket } from "../../lib/useLiveSocket"
-import { Button, Card, ErrorBanner, Spinner } from "../../components/ui"
+import { Button, Card, ConfirmDialog, ErrorBanner, Spinner } from "../../components/ui"
 
 function formatTime(seconds: number) {
   const m = Math.floor(seconds / 60)
@@ -22,6 +23,7 @@ export default function StudentQuiz() {
   const [error, setError] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [online, setOnline] = useState(navigator.onLine)
+  const [confirmSubmit, setConfirmSubmit] = useState(false)
   const submittedRef = useRef(false)
 
   const loadSession = useCallback(async () => {
@@ -120,9 +122,12 @@ export default function StudentQuiz() {
   if (session.session_status === "waiting") {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <Card className="max-w-md text-center">
+        <Card className="max-w-md animate-scale-in text-center">
           <p className="text-sm text-slate-500">{session.quiz_title}</p>
-          <p className="mt-4 animate-pulse text-lg font-medium text-slate-700">Waiting for teacher to start the quiz...</p>
+          <div className="mx-auto mt-4 flex h-3 w-3 items-center justify-center">
+            <span className="h-3 w-3 animate-pulse rounded-full bg-indigo-500" />
+          </div>
+          <p className="mt-3 text-lg font-medium text-slate-700">Waiting for teacher to start the quiz...</p>
           <p className="mt-2 text-xs text-slate-400">Keep this page open. The quiz will begin automatically.</p>
         </Card>
       </div>
@@ -135,7 +140,8 @@ export default function StudentQuiz() {
   return (
     <div className="mx-auto max-w-2xl">
       {!online && (
-        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-700">
+        <div className="mb-4 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-700">
+          <WifiOff className="h-4 w-4 shrink-0" />
           Internet connection lost. Your answers are saved as soon as you're back online.
         </div>
       )}
@@ -146,7 +152,10 @@ export default function StudentQuiz() {
           </p>
           <p className="text-xs text-slate-400">{answeredCount} answered</p>
         </div>
-        <div className={`rounded-xl px-4 py-2 text-lg font-bold ${remaining !== null && remaining < 60 ? "bg-rose-100 text-rose-700" : "bg-indigo-100 text-indigo-700"}`}>
+        <div
+          className={`flex items-center gap-1.5 rounded-xl px-4 py-2 font-display text-lg font-bold transition-colors ${remaining !== null && remaining < 60 ? "bg-rose-100 text-rose-700" : "bg-indigo-100 text-indigo-700"}`}
+        >
+          <Clock className="h-4 w-4" />
           {remaining !== null ? formatTime(remaining) : "--:--"}
         </div>
       </div>
@@ -159,25 +168,25 @@ export default function StudentQuiz() {
       </div>
 
       {question && (
-        <Card>
+        <Card className="animate-fade-in">
           <p className="text-lg font-medium text-slate-900">{question.question_text}</p>
           <div className="mt-5 space-y-3">
             {question.options.map((option) => (
               <button
                 key={option.key}
                 onClick={() => handleSelect(question.id, option.key)}
-                className={`flex w-full items-center gap-3 rounded-2xl border-2 px-4 py-4 text-left text-base transition ${
+                className={`flex w-full items-center gap-3 rounded-2xl border-2 px-4 py-4 text-left text-base transition-colors ${
                   question.selected_answer === option.key
                     ? "border-indigo-600 bg-indigo-50 text-indigo-900"
                     : "border-slate-200 bg-white text-slate-700 hover:border-indigo-300"
                 }`}
               >
                 <span
-                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold transition-colors ${
                     question.selected_answer === option.key ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-500"
                   }`}
                 >
-                  {option.key}
+                  {question.selected_answer === option.key ? <Check className="h-4 w-4" /> : option.key}
                 </span>
                 {option.text}
               </button>
@@ -195,9 +204,12 @@ export default function StudentQuiz() {
         ) : (
           <Button
             variant="success"
-            disabled={submitting}
+            loading={submitting}
             onClick={() => {
-              if (answeredCount < session.questions.length && !confirm(`You've answered ${answeredCount}/${session.questions.length}. Submit anyway?`)) return
+              if (answeredCount < session.questions.length) {
+                setConfirmSubmit(true)
+                return
+              }
               handleSubmit()
             }}
           >
@@ -211,7 +223,7 @@ export default function StudentQuiz() {
           <button
             key={q.id}
             onClick={() => setIndex(i)}
-            className={`h-8 w-8 rounded-lg text-xs font-medium ${
+            className={`h-8 w-8 rounded-lg text-xs font-medium transition-colors ${
               i === index ? "bg-indigo-600 text-white" : q.selected_answer ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"
             }`}
           >
@@ -219,6 +231,19 @@ export default function StudentQuiz() {
           </button>
         ))}
       </div>
+
+      <ConfirmDialog
+        open={confirmSubmit}
+        onClose={() => setConfirmSubmit(false)}
+        onConfirm={() => {
+          setConfirmSubmit(false)
+          handleSubmit()
+        }}
+        title="Submit with unanswered questions?"
+        description={`You've answered ${answeredCount}/${session.questions.length} questions. Once submitted, you can't change your answers.`}
+        confirmLabel="Submit Anyway"
+        variant="success"
+      />
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
+import { Radio } from "lucide-react"
 import { api } from "../../lib/api"
 import type { Quiz } from "../../lib/types"
 import { Badge, Card, EmptyState, PageHeader, Spinner } from "../../components/ui"
@@ -21,13 +22,13 @@ export default function LiveHub() {
     <div>
       <PageHeader title="Live Quiz" subtitle="Start a draft quiz live, or jump back into one already running." />
       {quizzes.length === 0 ? (
-        <EmptyState title="No quizzes ready to go live" description="Create a quiz with questions first." />
+        <EmptyState title="No quizzes ready to go live" description="Create a quiz with questions first." icon={<Radio className="h-5 w-5" />} />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid animate-slide-up gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {quizzes.map((quiz) => (
             <Link key={quiz.id} to={`/teacher/live/${quiz.id}`}>
-              <Card className="h-full transition hover:border-indigo-300 hover:shadow-md">
-                <div className="flex items-start justify-between">
+              <Card interactive className="h-full">
+                <div className="flex items-start justify-between gap-2">
                   <p className="font-semibold text-slate-900">{quiz.title}</p>
                   <Badge status={quiz.status} />
                 </div>

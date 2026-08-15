@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
+import { CheckCircle2, Play, Square, Users } from "lucide-react"
 import { api, ApiError } from "../../lib/api"
 import type { MonitorState, Quiz } from "../../lib/types"
 import { useAuth } from "../../lib/auth"
 import { useLiveSocket } from "../../lib/useLiveSocket"
-import { Badge, Button, Card, ErrorBanner, PageHeader, Spinner, Table } from "../../components/ui"
+import { Badge, Button, Card, ConfirmDialog, ErrorBanner, PageHeader, Spinner, Table } from "../../components/ui"
 
 function useCountdown(endsAt: string | null) {
   const [remaining, setRemaining] = useState<number | null>(null)
@@ -37,6 +38,7 @@ export default function LiveControl() {
   const [monitor, setMonitor] = useState<MonitorState | null>(null)
   const [error, setError] = useState("")
   const [busy, setBusy] = useState(false)
+  const [confirmEnd, setConfirmEnd] = useState(false)
 
   const loadQuiz = useCallback(async () => {
     if (!quizId) return
@@ -112,7 +114,7 @@ export default function LiveControl() {
   }
 
   async function handleEnd() {
-    if (!quizId || !confirm("End this quiz now? All active students will be auto-submitted.")) return
+    if (!quizId) return
     setBusy(true)
     setError("")
     try {
@@ -120,8 +122,8 @@ export default function LiveControl() {
       navigate(`/teacher/results/${quizId}`)
     } catch (exc) {
       setError(exc instanceof ApiError ? exc.message : "Failed to end quiz")
-    } finally {
       setBusy(false)
+      setConfirmEnd(false)
     }
   }
 
@@ -135,24 +137,28 @@ export default function LiveControl() {
       {quiz.status === "draft" && (
         <Card className="text-center">
           <p className="text-slate-600">This quiz hasn't gone live yet.</p>
-          <Button className="mt-4" onClick={handleStart} disabled={busy}>
+          <Button className="mt-4" onClick={handleStart} loading={busy}>
+            <Play className="h-4 w-4" />
             Start Live Quiz
           </Button>
         </Card>
       )}
 
       {quiz.status === "live_lobby" && (
-        <Card>
+        <Card className="animate-scale-in">
           <div className="text-center">
             <p className="text-sm text-slate-500">Quiz Code</p>
-            <p className="mt-1 text-5xl font-bold tracking-widest text-indigo-600">{quiz.quiz_code}</p>
+            <p className="mt-1 font-display text-5xl font-bold tracking-widest text-indigo-600">{quiz.quiz_code}</p>
             <p className="mt-2 text-sm text-slate-400">Students enter this code on the student portal to join.</p>
           </div>
 
           <div className="mt-8">
-            <p className="text-lg font-semibold text-slate-900">{monitor?.joined_count ?? 0} Students Joined</p>
+            <p className="flex items-center justify-center gap-2 text-lg font-semibold text-slate-900">
+              <Users className="h-5 w-5 text-slate-400" />
+              {monitor?.joined_count ?? 0} Students Joined
+            </p>
             {monitor && monitor.students.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-3 flex flex-wrap justify-center gap-2">
                 {monitor.students.map((s) => (
                   <span key={s.session_id} className="rounded-full bg-slate-100 px-3 py-1.5 text-sm text-slate-700">
                     {s.name}
@@ -163,7 +169,8 @@ export default function LiveControl() {
           </div>
 
           <div className="mt-8 text-center">
-            <Button variant="success" onClick={handleBegin} disabled={busy || !monitor?.joined_count}>
+            <Button variant="success" onClick={handleBegin} loading={busy} disabled={!monitor?.joined_count}>
+              <Play className="h-4 w-4" />
               START QUIZ
             </Button>
             {!monitor?.joined_count && <p className="mt-2 text-xs text-slate-400">Waiting for at least one student to join...</p>}
@@ -173,11 +180,15 @@ export default function LiveControl() {
 
       {quiz.status === "live_active" && monitor && (
         <div className="space-y-4">
-          <Card>
+          <Card className="animate-slide-up">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <p className="text-sm text-slate-500">Time Remaining</p>
-                <p className="text-3xl font-bold text-slate-900">{remaining !== null ? formatTime(remaining) : "--:--"}</p>
+                <p
+                  className={`font-display text-3xl font-bold ${remaining !== null && remaining < 60 ? "text-rose-600" : "text-slate-900"}`}
+                >
+                  {remaining !== null ? formatTime(remaining) : "--:--"}
+                </p>
               </div>
               <div className="flex gap-6 text-center">
                 <div>
@@ -193,14 +204,15 @@ export default function LiveControl() {
                   <p className="text-xs text-slate-500">Not Started</p>
                 </div>
               </div>
-              <Button variant="danger" onClick={handleEnd} disabled={busy}>
+              <Button variant="danger" onClick={() => setConfirmEnd(true)} disabled={busy}>
+                <Square className="h-4 w-4" />
                 End Quiz
               </Button>
             </div>
           </Card>
 
-          <Card>
-            <h3 className="mb-3 text-sm font-semibold text-slate-900">
+          <Card className="animate-slide-up">
+            <h3 className="mb-3 font-display text-sm font-semibold text-slate-900">
               Students ({monitor.joined_count}/{monitor.joined_count})
             </h3>
             <Table>
@@ -213,7 +225,7 @@ export default function LiveControl() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {monitor.students.map((s) => (
-                  <tr key={s.session_id}>
+                  <tr key={s.session_id} className="transition-colors hover:bg-slate-50">
                     <td className="px-4 py-3 font-medium text-slate-900">{s.name}</td>
                     <td className="px-4 py-3 text-slate-500">
                       {s.answered}/{s.total_questions}
@@ -231,12 +243,23 @@ export default function LiveControl() {
 
       {quiz.status === "completed" && (
         <Card className="text-center">
-          <p className="text-slate-600">This quiz has ended.</p>
+          <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-500" />
+          <p className="mt-2 text-slate-600">This quiz has ended.</p>
           <Button className="mt-4" onClick={() => navigate(`/teacher/results/${quiz.id}`)}>
             View Results
           </Button>
         </Card>
       )}
+
+      <ConfirmDialog
+        open={confirmEnd}
+        onClose={() => setConfirmEnd(false)}
+        onConfirm={handleEnd}
+        title="End this quiz now?"
+        description="All active students will be auto-submitted with their current answers."
+        confirmLabel="End Quiz"
+        busy={busy}
+      />
     </div>
   )
 }

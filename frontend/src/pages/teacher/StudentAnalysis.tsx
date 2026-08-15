@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { useParams } from "react-router-dom"
 import { Line, LineChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
+import { AlertTriangle, Download, TrendingUp } from "lucide-react"
 import { api, downloadReport } from "../../lib/api"
 import type { StudentAnalysis as StudentAnalysisData } from "../../lib/types"
 import { Button, Card, EmptyState, PageHeader, Spinner, Table } from "../../components/ui"
@@ -31,6 +32,7 @@ export default function StudentAnalysis() {
         subtitle={`Student ID: ${data.student_id}`}
         actions={
           <Button variant="secondary" onClick={() => downloadReport(`/api/reports/students/${id}?format=csv`, `student_report_${data.student_id}.csv`)}>
+            <Download className="h-4 w-4" />
             Export Report
           </Button>
         }
@@ -38,38 +40,38 @@ export default function StudentAnalysis() {
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
         <Card>
-          <p className="text-xs uppercase text-slate-500">Total Quizzes</p>
-          <p className="mt-1 text-2xl font-semibold text-slate-900">{data.total_quizzes}</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Total Quizzes</p>
+          <p className="mt-1 font-display text-2xl font-semibold text-slate-900">{data.total_quizzes}</p>
         </Card>
         <Card>
-          <p className="text-xs uppercase text-slate-500">Average</p>
-          <p className="mt-1 text-2xl font-semibold text-slate-900">{data.average_percentage}%</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Average</p>
+          <p className="mt-1 font-display text-2xl font-semibold text-slate-900">{data.average_percentage}%</p>
         </Card>
         <Card>
-          <p className="text-xs uppercase text-slate-500">Highest</p>
-          <p className="mt-1 text-2xl font-semibold text-emerald-600">{data.highest_score}%</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Highest</p>
+          <p className="mt-1 font-display text-2xl font-semibold text-emerald-600">{data.highest_score}%</p>
         </Card>
         <Card>
-          <p className="text-xs uppercase text-slate-500">Lowest</p>
-          <p className="mt-1 text-2xl font-semibold text-rose-600">{data.lowest_score}%</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Lowest</p>
+          <p className="mt-1 font-display text-2xl font-semibold text-rose-600">{data.lowest_score}%</p>
         </Card>
         <Card>
-          <p className="text-xs uppercase text-slate-500">Improvement</p>
-          <p className="mt-1 text-2xl font-semibold text-slate-900">
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Improvement</p>
+          <p className="mt-1 font-display text-2xl font-semibold text-slate-900">
             {data.improvement_percentage > 0 ? "+" : ""}
             {data.improvement_percentage}%
           </p>
         </Card>
         <Card>
-          <p className="text-xs uppercase text-slate-500">Trend</p>
-          <p className={`mt-1 text-2xl font-semibold ${TREND_TONE[data.trend_status] || "text-slate-900"}`}>{data.trend_status}</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Trend</p>
+          <p className={`mt-1 font-display text-2xl font-semibold ${TREND_TONE[data.trend_status] || "text-slate-900"}`}>{data.trend_status}</p>
         </Card>
       </div>
 
       <Card className="mt-6">
-        <h3 className="mb-4 text-sm font-semibold text-slate-900">Performance Trend</h3>
+        <h3 className="mb-4 font-display text-sm font-semibold text-slate-900">Performance Trend</h3>
         {chartData.length === 0 ? (
-          <EmptyState title="No completed quizzes yet" />
+          <EmptyState title="No completed quizzes yet" icon={<TrendingUp className="h-5 w-5" />} />
         ) : (
           <ResponsiveContainer width="100%" height={260}>
             <LineChart data={chartData}>
@@ -85,7 +87,7 @@ export default function StudentAnalysis() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <Card>
-          <h3 className="mb-3 text-sm font-semibold text-slate-900">Quiz History</h3>
+          <h3 className="mb-3 font-display text-sm font-semibold text-slate-900">Quiz History</h3>
           {data.trend.length === 0 ? (
             <p className="text-sm text-slate-400">No quizzes completed yet.</p>
           ) : (
@@ -99,7 +101,7 @@ export default function StudentAnalysis() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {data.trend.map((t) => (
-                  <tr key={t.quiz_id}>
+                  <tr key={t.quiz_id} className="transition-colors hover:bg-slate-50">
                     <td className="px-3 py-2 text-slate-800">{t.quiz_title}</td>
                     <td className="px-3 py-2 text-slate-500">
                       {t.score}/{t.total_marks}
@@ -113,10 +115,11 @@ export default function StudentAnalysis() {
         </Card>
 
         <Card>
-          <h3 className="mb-3 text-sm font-semibold text-slate-900">Topic Accuracy</h3>
+          <h3 className="mb-3 font-display text-sm font-semibold text-slate-900">Topic Accuracy</h3>
           {data.weak_topics.length > 0 && (
-            <div className="mb-3 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">
-              Needs Improvement: {data.weak_topics.map((t) => `${t.topic} (${t.accuracy}%)`).join(", ")}
+            <div className="mb-3 flex items-start gap-1.5 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span>Needs Improvement: {data.weak_topics.map((t) => `${t.topic} (${t.accuracy}%)`).join(", ")}</span>
             </div>
           )}
           {data.topics.length === 0 ? (

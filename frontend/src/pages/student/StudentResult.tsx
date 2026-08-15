@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { Link, useParams } from "react-router-dom"
+import { Award, CheckCircle2, Circle, Clock, XCircle } from "lucide-react"
 import { api, ApiError } from "../../lib/api"
 import type { ResultData } from "../../lib/types"
 import { Button, Card, ErrorBanner, Spinner } from "../../components/ui"
@@ -45,13 +46,18 @@ export default function StudentResult() {
 
   return (
     <div className="mx-auto max-w-lg">
-      <Card className="text-center">
-        <p className="text-sm font-medium text-slate-500">Quiz Completed!</p>
-        <h1 className="mt-1 text-2xl font-semibold text-slate-900">{result.quiz_title}</h1>
-        <p className="mt-4 text-6xl font-bold text-slate-900">
+      <Card className="animate-scale-in text-center">
+        <div
+          className={`mx-auto flex h-14 w-14 items-center justify-center rounded-full ${result.passed ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"}`}
+        >
+          <Award className="h-7 w-7" />
+        </div>
+        <p className="mt-3 text-sm font-medium text-slate-500">Quiz Completed!</p>
+        <h1 className="mt-1 font-display text-2xl font-semibold tracking-tight text-slate-900">{result.quiz_title}</h1>
+        <p className="mt-4 font-display text-6xl font-bold text-slate-900">
           {result.score}/{result.total_marks}
         </p>
-        <p className="mt-2 text-4xl font-bold text-indigo-600">{result.percentage}%</p>
+        <p className="mt-2 font-display text-4xl font-bold text-indigo-600">{result.percentage}%</p>
         <p className={`mt-3 text-lg font-semibold ${PERFORMANCE_TONE[result.performance_message] || "text-slate-600"}`}>
           {result.performance_message}
         </p>
@@ -61,19 +67,23 @@ export default function StudentResult() {
 
         <div className="mt-6 grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
           <div className="rounded-xl bg-emerald-50 p-3">
-            <p className="text-lg font-semibold text-emerald-700">{result.correct}</p>
+            <CheckCircle2 className="mx-auto h-4 w-4 text-emerald-600" />
+            <p className="mt-1 text-lg font-semibold text-emerald-700">{result.correct}</p>
             <p className="text-xs text-emerald-600">Correct</p>
           </div>
           <div className="rounded-xl bg-rose-50 p-3">
-            <p className="text-lg font-semibold text-rose-700">{result.wrong}</p>
+            <XCircle className="mx-auto h-4 w-4 text-rose-600" />
+            <p className="mt-1 text-lg font-semibold text-rose-700">{result.wrong}</p>
             <p className="text-xs text-rose-600">Wrong</p>
           </div>
           <div className="rounded-xl bg-slate-100 p-3">
-            <p className="text-lg font-semibold text-slate-700">{result.unanswered}</p>
+            <Circle className="mx-auto h-4 w-4 text-slate-500" />
+            <p className="mt-1 text-lg font-semibold text-slate-700">{result.unanswered}</p>
             <p className="text-xs text-slate-500">Unanswered</p>
           </div>
           <div className="rounded-xl bg-indigo-50 p-3">
-            <p className="text-lg font-semibold text-indigo-700">
+            <Clock className="mx-auto h-4 w-4 text-indigo-600" />
+            <p className="mt-1 text-lg font-semibold text-indigo-700">
               {minutes}:{seconds.toString().padStart(2, "0")}
             </p>
             <p className="text-xs text-indigo-600">Time</p>
@@ -103,7 +113,7 @@ function AnswerReview({ answers }: { answers: ResultData["answers"] }) {
 
   return (
     <Card className="mt-4">
-      <h2 className="text-lg font-semibold text-slate-900">Review your answers</h2>
+      <h2 className="font-display text-lg font-semibold text-slate-900">Review your answers</h2>
       <p className="mt-1 text-sm text-slate-500">
         {missed.length} of {answers.length} question{answers.length === 1 ? "" : "s"} to review
       </p>
