@@ -22,12 +22,12 @@ export default function Home() {
             to="/teacher/login"
             className="group flex items-start gap-4 rounded-2xl bg-indigo-600 px-6 py-6 text-white shadow-soft transition hover:bg-indigo-700 hover:shadow-soft-lg"
           >
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15">
-              <Presentation className="h-5 w-5" />
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/20 ring-1 ring-inset ring-white/25">
+              <Presentation className="h-5 w-5 text-white" />
             </div>
             <div className="flex-1">
-              <p className="text-lg font-semibold">Teacher Login</p>
-              <p className="mt-1 text-sm text-indigo-100">Create quizzes, run live sessions, review analytics.</p>
+              <p className="text-lg font-semibold text-white">Teacher Login</p>
+              <p className="mt-1 text-sm text-indigo-50">Create quizzes, run live sessions, review analytics.</p>
             </div>
             <ArrowRight className="mt-2 h-4 w-4 shrink-0 opacity-0 transition group-hover:translate-x-0.5 group-hover:opacity-100" />
           </Link>
