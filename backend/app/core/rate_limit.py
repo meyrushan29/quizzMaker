@@ -29,3 +29,4 @@ class RateLimiter:
 
 login_rate_limiter = RateLimiter(max_calls=10, period_seconds=60)
 student_login_rate_limiter = RateLimiter(max_calls=20, period_seconds=60)
+mcq_parse_rate_limiter = RateLimiter(max_calls=5, period_seconds=60)

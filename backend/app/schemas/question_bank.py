@@ -44,3 +44,22 @@ class QuestionBankRead(QuestionBankBase):
 
     class Config:
         from_attributes = True
+
+
+class ParseTextRequest(BaseModel):
+    text: str
+
+
+class ParsedQuestionDraft(BaseModel):
+    """One MCQ extracted from pasted text. `correct_answer` is nullable because the
+    source text may not contain an answer key - the teacher must fill it in before
+    the draft can be saved."""
+
+    question_text: str
+    option_a: str
+    option_b: str
+    option_c: str
+    option_d: str
+    correct_answer: str | None = Field(default=None, pattern="^[ABCD]$")
+    marks: int = 1
+    topic: str | None = None

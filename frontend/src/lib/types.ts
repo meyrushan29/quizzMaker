@@ -60,6 +60,17 @@ export interface BankQuestion {
   created_at: string
 }
 
+export interface ParsedDraftQuestion {
+  question_text: string
+  option_a: string
+  option_b: string
+  option_c: string
+  option_d: string
+  correct_answer: "A" | "B" | "C" | "D" | null
+  marks: number
+  topic: string | null
+}
+
 export interface Student {
   id: number
   student_id: string

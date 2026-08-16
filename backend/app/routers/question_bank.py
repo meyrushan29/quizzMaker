@@ -3,10 +3,18 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..core.deps import get_current_teacher
+from ..core.rate_limit import mcq_parse_rate_limiter
 from ..db import get_db
 from ..models import Question, QuestionBank, Quiz, QuizStatus, User
 from ..schemas.question import QuestionRead
-from ..schemas.question_bank import QuestionBankCreate, QuestionBankRead, QuestionBankUpdate
+from ..schemas.question_bank import (
+    ParsedQuestionDraft,
+    ParseTextRequest,
+    QuestionBankCreate,
+    QuestionBankRead,
+    QuestionBankUpdate,
+)
+from ..services.mcq_parser import parse_mcq_text
 
 router = APIRouter()
 
@@ -18,6 +26,11 @@ async def create_bank_question(payload: QuestionBankCreate, db: AsyncSession = D
     await db.commit()
     await db.refresh(question)
     return question
+
+
+@router.post("/parse", response_model=list[ParsedQuestionDraft], dependencies=[Depends(mcq_parse_rate_limiter)])
+async def parse_bank_questions(payload: ParseTextRequest, _: User = Depends(get_current_teacher)):
+    return await parse_mcq_text(payload.text)
 
 
 @router.get("/", response_model=list[QuestionBankRead])

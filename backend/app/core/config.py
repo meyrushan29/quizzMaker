@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     default_passing_percentage: int = 50
     at_risk_threshold_percentage: int = 50
 
+    # Used by services/mcq_parser.py to parse pasted MCQ text via the OpenAI API.
+    # Leave empty in environments that don't need the paste-to-MCQ feature.
+    openai_api_key: str = ""
+
     @field_validator("database_url", mode="before")
     @classmethod
     def _use_asyncpg_driver(cls, value: str) -> str:

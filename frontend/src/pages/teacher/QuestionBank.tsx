@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
-import { CheckCircle2, Layers, Pencil, PlusCircle, Trash2 } from "lucide-react"
+import { CheckCircle2, ClipboardPaste, Layers, Pencil, PlusCircle, Trash2 } from "lucide-react"
 import { api, ApiError } from "../../lib/api"
-import type { BankQuestion, Quiz } from "../../lib/types"
+import type { BankQuestion, ParsedDraftQuestion, Quiz } from "../../lib/types"
 import { Button, Card, ConfirmDialog, EmptyState, ErrorBanner, Field, Modal, PageHeader, Spinner, Table, inputClass } from "../../components/ui"
 
 const EMPTY_FORM = {
@@ -30,6 +30,13 @@ export default function QuestionBank() {
   const [message, setMessage] = useState("")
   const [deleteTarget, setDeleteTarget] = useState<BankQuestion | null>(null)
   const [deleting, setDeleting] = useState(false)
+
+  const [showPaste, setShowPaste] = useState(false)
+  const [pasteText, setPasteText] = useState("")
+  const [parsing, setParsing] = useState(false)
+  const [parseError, setParseError] = useState("")
+  const [drafts, setDrafts] = useState<ParsedDraftQuestion[] | null>(null)
+  const [savingDrafts, setSavingDrafts] = useState(false)
 
   async function load() {
     try {
@@ -105,16 +112,74 @@ export default function QuestionBank() {
     setTimeout(() => setMessage(""), 3000)
   }
 
+  function openPaste() {
+    setPasteText("")
+    setDrafts(null)
+    setParseError("")
+    setShowPaste(true)
+  }
+
+  async function handleParse() {
+    if (!pasteText.trim()) return
+    setParsing(true)
+    setParseError("")
+    try {
+      const parsed = await api.post<ParsedDraftQuestion[]>("/api/question-bank/parse", { text: pasteText })
+      if (parsed.length === 0) {
+        setParseError("No multiple-choice questions were found in that text.")
+      } else {
+        setDrafts(parsed)
+      }
+    } catch (exc) {
+      setParseError(exc instanceof ApiError ? exc.message : "Failed to parse the pasted text")
+    } finally {
+      setParsing(false)
+    }
+  }
+
+  function updateDraft(index: number, patch: Partial<ParsedDraftQuestion>) {
+    setDrafts((current) => current && current.map((draft, i) => (i === index ? { ...draft, ...patch } : draft)))
+  }
+
+  function removeDraft(index: number) {
+    setDrafts((current) => current && current.filter((_, i) => i !== index))
+  }
+
+  async function handleConfirmDrafts() {
+    if (!drafts || drafts.length === 0) return
+    setSavingDrafts(true)
+    try {
+      for (const draft of drafts) {
+        await api.post("/api/question-bank/", draft)
+      }
+      setShowPaste(false)
+      setDrafts(null)
+      setMessage(`Added ${drafts.length} question${drafts.length === 1 ? "" : "s"} to the bank.`)
+      setTimeout(() => setMessage(""), 3000)
+      await load()
+    } catch (exc) {
+      setParseError(exc instanceof ApiError ? exc.message : "Failed to save the reviewed questions")
+    } finally {
+      setSavingDrafts(false)
+    }
+  }
+
   return (
     <div>
       <PageHeader
         title="Question Bank"
         subtitle="Save reusable questions and add them to any draft quiz."
         actions={
-          <Button onClick={openCreate}>
-            <PlusCircle className="h-4 w-4" />
-            Add Question
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={openPaste}>
+              <ClipboardPaste className="h-4 w-4" />
+              Paste &amp; Parse
+            </Button>
+            <Button onClick={openCreate}>
+              <PlusCircle className="h-4 w-4" />
+              Add Question
+            </Button>
+          </div>
         }
       />
 
@@ -242,6 +307,128 @@ export default function QuestionBank() {
             <Button type="submit">{editing ? "Save Changes" : "Add Question"}</Button>
           </div>
         </form>
+      </Modal>
+
+      <Modal
+        open={showPaste}
+        onClose={() => setShowPaste(false)}
+        title={drafts ? "Review parsed questions" : "Paste & Parse"}
+        maxWidth={drafts ? "max-w-2xl" : "max-w-lg"}
+      >
+        {!drafts ? (
+          <div className="space-y-3">
+            <p className="text-sm text-slate-500">
+              Paste MCQs copied from a Word doc, PDF, or exam paper. Only questions already present in the text are
+              extracted &mdash; nothing is invented.
+            </p>
+            <textarea
+              value={pasteText}
+              onChange={(e) => setPasteText(e.target.value)}
+              className={inputClass}
+              rows={10}
+              placeholder={"1. What is 2 + 2?\na) 3  b) 4  c) 5  d) 6\nAnswer: B"}
+            />
+            {parseError && <ErrorBanner message={parseError} />}
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="secondary" onClick={() => setShowPaste(false)}>
+                Cancel
+              </Button>
+              <Button type="button" loading={parsing} onClick={handleParse}>
+                Parse
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <p className="text-sm text-slate-500">
+              Review each question before adding it to the bank. Questions missing a correct answer are highlighted
+              &mdash; pick one to enable adding.
+            </p>
+            <div className="max-h-112 space-y-3 overflow-y-auto pr-1">
+              {drafts.map((draft, index) => {
+                const missingAnswer = draft.correct_answer === null
+                return (
+                  <div
+                    key={index}
+                    className={`rounded-xl border p-3 ${missingAnswer ? "border-rose-300 bg-rose-50" : "border-slate-200"}`}
+                  >
+                    <div className="mb-2 flex items-start justify-between gap-2">
+                      <textarea
+                        value={draft.question_text}
+                        onChange={(e) => updateDraft(index, { question_text: e.target.value })}
+                        className={inputClass}
+                        rows={2}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeDraft(index)}
+                        className="shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+                        aria-label="Remove question"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                    {missingAnswer && (
+                      <p className="mb-2 text-xs font-medium text-rose-700">
+                        No answer key found in the pasted text &mdash; select the correct option below.
+                      </p>
+                    )}
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      {(["a", "b", "c", "d"] as const).map((letter) => (
+                        <div key={letter} className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name={`draft_${index}_correct_answer`}
+                            checked={draft.correct_answer === letter.toUpperCase()}
+                            onChange={() => updateDraft(index, { correct_answer: letter.toUpperCase() as "A" })}
+                          />
+                          <input
+                            value={draft[`option_${letter}` as "option_a"]}
+                            onChange={(e) => updateDraft(index, { [`option_${letter}`]: e.target.value } as Partial<ParsedDraftQuestion>)}
+                            className={`${inputClass} py-1.5 text-sm`}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      <input
+                        value={draft.topic ?? ""}
+                        onChange={(e) => updateDraft(index, { topic: e.target.value || null })}
+                        placeholder="Topic (optional)"
+                        className={`${inputClass} py-1.5 text-sm`}
+                      />
+                      <input
+                        type="number"
+                        min={1}
+                        value={draft.marks}
+                        onChange={(e) => updateDraft(index, { marks: Number(e.target.value) || 1 })}
+                        placeholder="Marks"
+                        className={`${inputClass} py-1.5 text-sm`}
+                      />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            {parseError && <ErrorBanner message={parseError} />}
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="secondary" onClick={() => setDrafts(null)}>
+                Back
+              </Button>
+              <Button type="button" variant="secondary" onClick={() => setShowPaste(false)}>
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                loading={savingDrafts}
+                disabled={drafts.length === 0 || drafts.some((d) => d.correct_answer === null)}
+                onClick={handleConfirmDrafts}
+              >
+                Add {drafts.length} to bank
+              </Button>
+            </div>
+          </div>
+        )}
       </Modal>
 
       <ConfirmDialog
