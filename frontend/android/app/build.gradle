@@ -1,6 +1,6 @@
 apply plugin: 'com.android.application'
 
-def keystorePropertiesFile = rootProject.file("../keystore.properties")
+def keystorePropertiesFile = rootProject.file("keystore.properties")
 def keystoreProperties = new Properties()
 def hasKeystoreProperties = keystorePropertiesFile.exists()
 if (hasKeystoreProperties) {
@@ -39,6 +39,11 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             if (hasKeystoreProperties) {
                 signingConfig signingConfigs.release
+            } else if (gradle.startParameter.taskNames.any { it.toLowerCase().contains("release") }) {
+                throw new org.gradle.api.GradleException(
+                    "keystore.properties not found at ${keystorePropertiesFile.path} - release build would be unsigned. " +
+                    "Create it (see README) before building a release artifact."
+                )
             }
         }
     }
