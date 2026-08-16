@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from openai import OpenAIError
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -30,7 +31,13 @@ async def create_bank_question(payload: QuestionBankCreate, db: AsyncSession = D
 
 @router.post("/parse", response_model=list[ParsedQuestionDraft], dependencies=[Depends(mcq_parse_rate_limiter)])
 async def parse_bank_questions(payload: ParseTextRequest, _: User = Depends(get_current_teacher)):
-    return await parse_mcq_text(payload.text)
+    try:
+        return await parse_mcq_text(payload.text)
+    except OpenAIError as exc:
+        # Raised as a plain OpenAIError (not an HTTPException), an unhandled exception here
+        # would otherwise propagate past CORSMiddleware and reach the browser as an opaque
+        # CORS failure instead of a readable error - see e.g. a missing OPENAI_API_KEY.
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"AI parsing failed: {exc}") from exc
 
 
 @router.get("/", response_model=list[QuestionBankRead])
