@@ -37,10 +37,16 @@ class QuestionBankUpdate(BaseModel):
     difficulty: str | None = None
 
 
+class QuizRef(BaseModel):
+    id: int
+    title: str
+
+
 class QuestionBankRead(QuestionBankBase):
     id: int
     created_by: int
     created_at: UTCDateTime
+    added_to_quizzes: list[QuizRef] = []
 
     class Config:
         from_attributes = True

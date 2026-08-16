@@ -14,6 +14,7 @@ from ..schemas.question_bank import (
     QuestionBankCreate,
     QuestionBankRead,
     QuestionBankUpdate,
+    QuizRef,
 )
 from ..services.mcq_parser import parse_mcq_text
 
@@ -65,7 +66,25 @@ async def list_bank_questions(
         query = query.where(QuestionBank.question_text.ilike(f"%{q}%"))
     query = query.order_by(QuestionBank.created_at.desc())
     result = await db.execute(query)
-    return result.scalars().all()
+    bank_questions = result.scalars().all()
+
+    quiz_map: dict[int, list[QuizRef]] = {}
+    ids = [question.id for question in bank_questions]
+    if ids:
+        rows = await db.execute(
+            select(Question.bank_question_id, Quiz.id, Quiz.title)
+            .join(Quiz, Quiz.id == Question.quiz_id)
+            .where(Question.bank_question_id.in_(ids))
+        )
+        for bank_question_id, quiz_id, quiz_title in rows.all():
+            quiz_map.setdefault(bank_question_id, []).append(QuizRef(id=quiz_id, title=quiz_title))
+
+    results = []
+    for question in bank_questions:
+        item = QuestionBankRead.model_validate(question)
+        item.added_to_quizzes = quiz_map.get(question.id, [])
+        results.append(item)
+    return results
 
 
 @router.put("/{question_id}", response_model=QuestionBankRead)
@@ -115,6 +134,7 @@ async def add_bank_question_to_quiz(question_id: int, quiz_id: int, db: AsyncSes
         marks=bank_question.marks,
         topic=bank_question.topic,
         difficulty=bank_question.difficulty,
+        bank_question_id=bank_question.id,
     )
     db.add(question)
     await db.flush()

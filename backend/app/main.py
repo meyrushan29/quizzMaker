@@ -19,10 +19,27 @@ app.add_middleware(
 )
 
 
+async def _add_bank_question_id_column(conn) -> None:
+    # create_all() only creates missing tables, not missing columns on tables that
+    # already exist - needed so existing dev/prod databases pick up the new
+    # questions.bank_question_id column added for the question-bank "already added"
+    # feature without requiring a full migration tool.
+    if conn.dialect.name == "sqlite":
+        result = await conn.exec_driver_sql("PRAGMA table_info(questions)")
+        columns = [row[1] for row in result.fetchall()]
+        if "bank_question_id" not in columns:
+            await conn.exec_driver_sql("ALTER TABLE questions ADD COLUMN bank_question_id INTEGER REFERENCES question_bank(id)")
+    else:
+        await conn.exec_driver_sql(
+            "ALTER TABLE questions ADD COLUMN IF NOT EXISTS bank_question_id INTEGER REFERENCES question_bank(id)"
+        )
+
+
 @app.on_event("startup")
 async def startup_event() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await _add_bank_question_id_column(conn)
 
     if settings.seed_demo_data:
         async with AsyncSessionLocal() as session:

@@ -104,6 +104,9 @@ class Question(Base):
     marks = Column(Integer, nullable=False, default=1)
     topic = Column(String(128), nullable=True)
     difficulty = Column(String(32), nullable=True)
+    # Tracks which question-bank entry this was copied from (add-to-quiz), so the
+    # bank can show teachers which quizzes already contain a given question.
+    bank_question_id = Column(Integer, ForeignKey("question_bank.id", ondelete="SET NULL"), nullable=True)
 
     quiz = relationship("Quiz", back_populates="questions")
     answers = relationship("Answer", back_populates="question", cascade="all, delete-orphan")

@@ -30,6 +30,7 @@ export default function QuestionBank() {
   const [message, setMessage] = useState("")
   const [deleteTarget, setDeleteTarget] = useState<BankQuestion | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [addVersion, setAddVersion] = useState(0)
 
   const [showPaste, setShowPaste] = useState(false)
   const [pasteText, setPasteText] = useState("")
@@ -110,6 +111,8 @@ export default function QuestionBank() {
     await api.post(`/api/question-bank/${question.id}/add-to-quiz/${quizId}`)
     setMessage(`Added to "${draftQuizzes.find((q) => q.id === quizId)?.title}".`)
     setTimeout(() => setMessage(""), 3000)
+    setAddVersion((v) => v + 1)
+    await load()
   }
 
   function openPaste() {
@@ -223,6 +226,7 @@ export default function QuestionBank() {
                 <td className="px-4 py-3 text-slate-500">{q.difficulty}</td>
                 <td className="px-4 py-3">
                   <select
+                    key={`${q.id}-${addVersion}`}
                     defaultValue=""
                     onChange={(e) => handleAddToQuiz(q, Number(e.target.value))}
                     className={`${inputClass} py-1.5 text-xs`}
@@ -230,12 +234,28 @@ export default function QuestionBank() {
                     <option value="" disabled>
                       Select quiz...
                     </option>
-                    {draftQuizzes.map((quiz) => (
-                      <option key={quiz.id} value={quiz.id}>
-                        {quiz.title}
-                      </option>
-                    ))}
+                    {draftQuizzes.map((quiz) => {
+                      const alreadyAdded = q.added_to_quizzes.some((added) => added.id === quiz.id)
+                      return (
+                        <option key={quiz.id} value={quiz.id}>
+                          {alreadyAdded ? `✓ ${quiz.title} (already added)` : quiz.title}
+                        </option>
+                      )
+                    })}
                   </select>
+                  {q.added_to_quizzes.length > 0 && (
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      {q.added_to_quizzes.map((added) => (
+                        <span
+                          key={added.id}
+                          className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700"
+                        >
+                          <CheckCircle2 className="h-3 w-3" />
+                          {added.title}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex justify-end gap-1">

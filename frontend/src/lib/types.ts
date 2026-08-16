@@ -42,6 +42,11 @@ export interface Question {
   difficulty: string | null
 }
 
+export interface QuizRef {
+  id: number
+  title: string
+}
+
 export interface BankQuestion {
   id: number
   question_text: string
@@ -58,6 +63,7 @@ export interface BankQuestion {
   difficulty: string | null
   created_by: number
   created_at: string
+  added_to_quizzes: QuizRef[]
 }
 
 export interface ParsedDraftQuestion {
