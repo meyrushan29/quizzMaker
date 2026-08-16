@@ -18,9 +18,14 @@ class _ParsedMCQBatch(BaseModel):
 
 
 async def parse_mcq_text(text: str) -> list[ParsedQuestionDraft]:
-    client = AsyncOpenAI(api_key=get_settings().openai_api_key)
+    # Uses Google's free-tier Gemini API through its OpenAI-compatible endpoint, so the
+    # rest of this file (and the openai SDK dependency) stays unchanged.
+    client = AsyncOpenAI(
+        api_key=get_settings().gemini_api_key,
+        base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+    )
     response = await client.chat.completions.parse(
-        model="gpt-5.4-mini",
+        model="gemini-flash-latest",
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": text},

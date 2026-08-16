@@ -34,9 +34,11 @@ async def parse_bank_questions(payload: ParseTextRequest, _: User = Depends(get_
     try:
         return await parse_mcq_text(payload.text)
     except OpenAIError as exc:
-        # Raised as a plain OpenAIError (not an HTTPException), an unhandled exception here
-        # would otherwise propagate past CORSMiddleware and reach the browser as an opaque
-        # CORS failure instead of a readable error - see e.g. a missing OPENAI_API_KEY.
+        # Raised as a plain OpenAIError (not an HTTPException) by the openai SDK client
+        # even though it's pointed at Gemini's OpenAI-compatible endpoint. An unhandled
+        # exception here would otherwise propagate past CORSMiddleware and reach the
+        # browser as an opaque CORS failure instead of a readable error - see e.g. a
+        # missing GEMINI_API_KEY.
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"AI parsing failed: {exc}") from exc
 
 
